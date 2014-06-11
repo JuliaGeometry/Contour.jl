@@ -9,13 +9,12 @@ type ContourLine
     y::Vector{Float64}
 end
 
-export contour_layers
+export ContourLine, contour_layers, get_level_cells, trace_contour
 
-function contour_layers(X::Vector{Float64}, Y::Vector{Float64}, z::Array{Float64,2})
-    h = linspace(minimum(z), maximum(z), 30);
+function contour_layers(X::Vector{Float64}, Y::Vector{Float64}, z::Matrix{Float64}, h::Vector{Float64})
     X_c = InterpGrid(X, BCnan, InterpLinear);
     Y_c = InterpGrid(Y, BCnan, InterpLinear);
-    colors = colormap("Blues", 30);
+    colors = colormap("Blues", length(h));
     layers = Array(Layer,0)
     for (i,l) in enumerate(h)
         cells = get_level_cells(z, l)
