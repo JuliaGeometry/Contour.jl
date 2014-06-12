@@ -8,6 +8,7 @@ type ContourLine
     x::Vector{Float64}
     y::Vector{Float64}
 end
+ContourLine() = ContourLine(Array(Float64,0), Array(Float64,0))
 
 export ContourLine, contour_layers, contours
 
@@ -69,7 +70,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         case::Int8
         case0::Int8
 
-        contour = ContourLine(Array(Float64,0), Array(Float64,0))
+        contour = ContourLine()
 
         # This is a complete hack at the moment.
         # Have to replace this section!!!
