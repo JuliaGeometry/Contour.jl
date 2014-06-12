@@ -28,10 +28,10 @@ function contours(x, y, z, level::Number)
     # Todo: size checking on x,y,z
     trace_contour(z,level,get_level_cells(z,level))
 end
-contours(x,y,z,levels) = Vector{ContourLine}[contours(x,y,z,l) for l in levels]
+contours(x,y,z,levels) = [contours(x,y,z,l) for l in levels]
 
-function get_level_cells(z::Array{Float64, 2}, h::Float64)
-    cells = Dict{(Int64,Int64),Int8}()
+function get_level_cells(z, h::Number)
+    cells = Dict{(Int,Int),Int8}()
     r_max, c_max = size(z)
     for c in 1:c_max-1
         for r in 1:r_max-1
@@ -52,23 +52,20 @@ function get_level_cells(z::Array{Float64, 2}, h::Float64)
     return cells
 end
 
-function trace_contour(z::Array{Float64,2},
-                       h::Float64,
-                       cells::Dict{(Int64,Int64),Int8})
-
+function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
     contours = Array(ContourLine, 0)
 
-    local r::Int64
-    local c::Int64
+    local r::Int
+    local c::Int
 
-    local r_max::Int64
-    local c_max::Int64
+    local r_max::Int
+    local c_max::Int
 
     (r_max, c_max) = size(z)
 
     while length(cells) > 0
-        r0::Int64
-        c0::Int64
+        r0::Int
+        c0::Int
         case::Int8
         case0::Int8
 
@@ -77,7 +74,7 @@ function trace_contour(z::Array{Float64,2},
         # This is a complete hack at the moment.
         # Have to replace this section!!!
 
-        function lt(row::Int64, col::Int64, front::Bool = false)
+        function lt(row::Int, col::Int, front::Bool = false)
             if (!front)
                 push!(contour.x, col)
                 push!(contour.y, row + (h - z[row,col])/(z[row+1,col] - z[row,col]))
@@ -87,7 +84,7 @@ function trace_contour(z::Array{Float64,2},
             end
         end
 
-        function rt(row::Int64, col::Int64, front::Bool = false)
+        function rt(row::Int, col::Int, front::Bool = false)
             if (!front)
                 push!(contour.x, col + 1)
                 push!(contour.y, row + (h - z[row,col+1])/(z[row+1,col+1] - z[row,col+1]))
@@ -97,7 +94,7 @@ function trace_contour(z::Array{Float64,2},
             end
         end
 
-        function up(row::Int64, col::Int64, front::Bool = false)
+        function up(row::Int, col::Int, front::Bool = false)
             if (!front)
                 push!(contour.x, col + (h - z[row+1,col])/(z[row+1,col+1] - z[row+1,col]))
                 push!(contour.y, row + 1)
@@ -107,7 +104,7 @@ function trace_contour(z::Array{Float64,2},
             end
         end
 
-        function dn(row::Int64, col::Int64, front::Bool = false)
+        function dn(row::Int, col::Int, front::Bool = false)
             if (!front)
                 push!(contour.x, col + (h - z[row,col])/(z[row,col+1] - z[row,col]))
                 push!(contour.y, row)
