@@ -25,10 +25,7 @@ function contour_layers(x,y,z,h)
 end
 
 function contours(x, y, z, level::Number)
-    length(x) == size(z,2) || throw(ErrorException("x must be the same length as the number of columns in z"))
-    length(y) == size(z,1) || throw(ErrorException("y must be the same length as the number of rows in z"))
-    ndims(z) == 2 || throw(ErrorException("z must be a two-dimensional iterable"))
-
+    # Todo: size checking on x,y,z
     trace_contour(z,level,get_level_cells(z,level))
 end
 contours(x,y,z,levels) = Vector{ContourLine}[contours(x,y,z,l) for l in levels]
