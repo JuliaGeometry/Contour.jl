@@ -9,23 +9,29 @@ type ContourLine
     y::Vector{Float64}
 end
 
-export ContourLine, contour_layers, get_level_cells, trace_contour
+export ContourLine, contour_layers, contours
 
-function contour_layers(X::Vector{Float64}, Y::Vector{Float64}, z::Matrix{Float64}, h::Vector{Float64})
-    X_c = InterpGrid(X, BCnan, InterpLinear);
-    Y_c = InterpGrid(Y, BCnan, InterpLinear);
-    colors = colormap("Blues", length(h));
-    layers = Array(Layer,0)
-    for (i,l) in enumerate(h)
-        cells = get_level_cells(z, l)
-        c = trace_contour(z, l, cells)
+function contour_layers(x,y,z,h)
+    X_c = InterpGrid(x, BCnan, InterpLinear)
+    Y_c = InterpGrid(y, BCnan, InterpLinear)
+    colors = colormap("Blues", length(h))
+    layers = Layer[]
+    for (i,c) in enumerate(contours(x,y,z,h))
         for line in c
             push!(layers, layer(x=X_c[line.x], y=Y_c[line.y], Geom.line(preserve_order=true), Theme(default_color=colors[i])))
         end
     end
-
-    return layers
+    layers
 end
+
+function contours(x, y, z, level::Number)
+    length(x) == size(z,2) || throw(ErrorException("x must be the same length as the number of columns in z"))
+    length(y) == size(z,1) || throw(ErrorException("y must be the same length as the number of rows in z"))
+    ndims(z) == 2 || throw(ErrorException("z must be a two-dimensional iterable"))
+
+    trace_contour(z,level,get_level_cells(z,level))
+end
+contours(x,y,z,levels) = Vector{ContourLine}[contours(x,y,z,l) for l in levels]
 
 function get_level_cells(z::Array{Float64, 2}, h::Float64)
     cells = Dict{(Int64,Int64),Int8}()
