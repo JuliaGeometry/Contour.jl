@@ -1,8 +1,6 @@
 module Contour
 
-using Gadfly
 using Grid
-using Color
 
 type ContourLine
     x::Vector{Float64}
@@ -11,19 +9,6 @@ end
 ContourLine() = ContourLine(Array(Float64,0), Array(Float64,0))
 
 export ContourLine, contour_layers, contours
-
-function contour_layers(x,y,z,h)
-    X_c = InterpGrid(x, BCnan, InterpLinear)
-    Y_c = InterpGrid(y, BCnan, InterpLinear)
-    colors = colormap("Blues", length(h))
-    layers = Layer[]
-    for (i,c) in enumerate(contours(x,y,z,h))
-        for line in c
-            push!(layers, layer(x=X_c[line.x], y=Y_c[line.y], Geom.line(preserve_order=true), Theme(default_color=colors[i])))
-        end
-    end
-    layers
-end
 
 function contours(x, y, z, level::Number)
     # Todo: size checking on x,y,z
