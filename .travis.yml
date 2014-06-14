@@ -14,4 +14,9 @@ before_install:
   - sudo apt-get install libpcre3-dev julia -y
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 script:
-  - julia -e 'Pkg.init(); Pkg.add("Grid"); Pkg.clone(pwd()); Pkg.test("Contour")'
+  - julia -e 'Pkg.init(); Pkg.add("Grid");'
+  - julia -e 'run(`ln -s $(pwd()) $(Pkg.dir("Contour"))`); Pkg.pin("Contour"); Pkg.resolve();'
+  - if [ $JULIAVERSION = "julianightlies" ]; then julia --code-coverage tests/runtests.jl; fi
+  - if [ $JULIAVERSION = "juliareleases" ]; then julia tests/runtests.jl; fi
+after_success:
+- julia -e 'cd(Pkg.dir("Contour")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
