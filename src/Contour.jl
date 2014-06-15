@@ -19,6 +19,7 @@ contours(x,y,z,levels) = [contours(x,y,z,l) for l in levels]
 function get_level_cells(z, h::Number)
     cells = Dict{(Int,Int),Int8}()
     r_max, c_max = size(z)
+    # local case::Int8
     for c in 1:c_max-1
         for r in 1:r_max-1
             case::Int8
@@ -43,124 +44,106 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
 
     local r::Int
     local c::Int
+    local r0::Int
+    local c0::Int
 
     local r_max::Int
     local c_max::Int
 
     (r_max, c_max) = size(z)
+    const lt::Int8,rt::Int8,up::Int8,dn::Int8 = 1,2,3,4
+    const ccw::Int8, cw::Int8 = 1, 2
+    const dir_r = int8(
+        [-1 +0 +0 +1 +0 +1 +1 +0 -1 +0 +0 +0 -1 +0 +0 -1 +1 +0 +0;
+         +0 -1 +0 +0 +0 -1 +0 +1 +1 +0 +1 +0 +0 -1 +0 +0 +0 +1 -1]')
+    const dir_c = int8(
+        [+0 +1 +1 +0 +0 +0 +0 -1 +0 +0 +1 -1 +0 -1 +0 +0 +0 -1 -1;
+         -1 +0 -1 +1 +0 +0 -1 +0 +0 +0 +0 +1 +1 +0 +0 -1 -1 +0 +0]')
+    const exit_face = int8(
+        [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up dn lt;
+         lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
+    
+
 
     while length(cells) > 0
-        r0::Int
-        c0::Int
         case::Int8
         case0::Int8
 
         contour = ContourLine()
 
         # This is a complete hack at the moment.
-        # Have to replace this section!!!
-
-        function lt(row::Int, col::Int, front::Bool = false)
-            if (!front)
-                push!(contour.x, col)
-                push!(contour.y, row + (h - z[row,col])/(z[row+1,col] - z[row,col]))
+        # Have thiso replace this section!!!
+        
+        # Helper function
+        
+        
+        function add_vertex(row::Int, col::Int, face::Int8, dir::Int8)
+            if face == lt
+                yi = row + (h - z[row,col])/(z[row+1,col] - z[row,col])
+                xi = col
+            elseif face == rt
+                yi = row + (h - z[row,col+1])/(z[row+1,col+1] - z[row,col+1])
+                xi = col + 1
+            elseif face == up
+                yi = row + 1
+                xi = col + (h - z[row+1,col])/(z[row+1,col+1] - z[row+1,col])
+            elseif face == dn
+                yi = row
+                xi = col + (h - z[row,col])/(z[row,col+1] - z[row,col])
+            end
+            if dir == ccw
+                push!(contour.x, xi)
+                push!(contour.y, yi)
             else
-                unshift!(contour.x, col)
-                unshift!(contour.y, row + (h - z[row,col])/(z[row+1,col] - z[row,col]))
+                unshift!(contour.x, xi)
+                unshift!(contour.y, yi)
             end
         end
 
-        function rt(row::Int, col::Int, front::Bool = false)
-            if (!front)
-                push!(contour.x, col + 1)
-                push!(contour.y, row + (h - z[row,col+1])/(z[row+1,col+1] - z[row,col+1]))
-            else
-                unshift!(contour.x, col + 1)
-                unshift!(contour.y, row + (h - z[row,col+1])/(z[row+1,col+1] - z[row,col+1]))
+
+        
+        function chase(row::Int, col::Int, dir::Int8)
+            while (row,col) != (r0,c0) && 0 < row < r_max && 0 < col < c_max
+                case = cells[(row,col)]
+                add_vertex(row,col,exit_face[case],dir)
+                if case == 16
+                    cells[(row,col)] = 4
+                elseif case == 17
+                    cells[(row,col)] = 13
+                elseif case == 18
+                    cells[(row,col)] = 2
+                elseif case == 19
+                    cells[(row,col)] = 11
+                else
+                    delete!(cells, (row,col))
+                end
+                (row,col) = (row + dir_r[case,dir], col + dir_c[case,dir])
             end
+ 
+             return (row,col), case
         end
-
-        function up(row::Int, col::Int, front::Bool = false)
-            if (!front)
-                push!(contour.x, col + (h - z[row+1,col])/(z[row+1,col+1] - z[row+1,col]))
-                push!(contour.y, row + 1)
-            else
-                unshift!(contour.x, col + (h - z[row+1,col])/(z[row+1,col+1] - z[row+1,col]))
-                unshift!(contour.y, row + 1)
-            end
-        end
-
-        function dn(row::Int, col::Int, front::Bool = false)
-            if (!front)
-                push!(contour.x, col + (h - z[row,col])/(z[row,col+1] - z[row,col]))
-                push!(contour.y, row)
-            else
-                unshift!(contour.x, col + (h - z[row,col])/(z[row,col+1] - z[row,col]))
-                unshift!(contour.y, row)
-            end
-        end
-
-        # cols       1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
-         cwdir_r = [+0, -1, +0, +0, +0, -1, +0, +1, +1, +0, +1, +0, +0, -1, +0, +0, +0, +1, -1]
-         cwdir_c = [-1, +0, -1, +1, +0, +0, -1, +0, +0, +0, +0, +1, +1, +0, +0, -1, -1, +0, +0]
-
-        ccwdir_r = [-1, +0, +0, +1, +0, +1, +1, +0, -1, +0, +0, +0, -1, +0, +0, -1, +1, +0, +0]
-        ccwdir_c = [+0, +1, +1, +0, +0, +0, +0, -1, +0, +0, +1, -1, +0, -1, +0, +0, +0, -1, -1]
-
-         cwdir_f = [lt, dn, lt, rt, rt, dn, lt, up, up, up, up, rt, rt, dn, dn, lt, lt, up, dn]
-        ccwdir_f = [dn, rt, rt, up, up, up, up, lt, dn, dn, rt, lt, dn, lt, lt, dn, up, dn, lt]
+        
         # Pick initial box
         (r0, c0), case0 = first(cells)
         (r,c) = (r0,c0)
         case = case0
-
+        
         # Start trace in CCW direction
         # Add starting point
-        cwdir_f[case](r0, c0)
-        (r,c) = (r0 + ccwdir_r[case], c0 + ccwdir_c[case])
+        add_vertex(r0,c0,exit_face[case],cw)
+        (r,c) = (r0 + dir_r[case,ccw], c0 + dir_c[case,ccw])
         if case < 15
             delete!(cells, (r0,c0))
         end
 
         # Trace line until we end up where we started, or we hit the boundary
-        while (r,c) != (r0,c0) && r != r_max && c != c_max && r > 0 && c > 0
-            case = cells[(r,c)]
-            ccwdir_f[case](r,c)
-            if case == 16
-                cells[(r,c)] = 4
-            elseif case == 17
-                cells[(r,c)] = 13
-            elseif case == 18
-                cells[(r,c)] = 2
-            elseif case == 19
-                cells[(r,c)] = 11
-            else
-                delete!(cells, (r,c))
-            end
-            (r,c) = (r + ccwdir_r[case], c + ccwdir_c[case])
-        end
+        (r,c), case = chase(r,c,ccw)
 
-        # If we hit the boundary, work backwards
         if (r,c) != (r0,c0)
-            (r,c) = (r0 + cwdir_r[case0], c0 + cwdir_c[case0])
+            (r,c) = (r0 + dir_r[case0,cw], c0 + dir_c[case0,cw])
         end
 
-        while (r,c) != (r0,c0) && r != r_max && c != c_max && r > 0 && c > 0
-            case = cells[(r,c)]
-            cwdir_f[case](r,c, true)
-            if case == 16
-                cells[(r,c)] = 4
-            elseif case == 17
-                cells[(r,c)] = 13
-            elseif case == 18
-                cells[(r,c)] = 2
-            elseif case == 19
-                cells[(r,c)] = 11
-            else
-                delete!(cells, (r,c))
-            end
-            (r,c) = (r + cwdir_r[case], c + cwdir_c[case])
-        end
+        chase(r,c,cw)
         push!(contours, contour)
     end
 
