@@ -65,6 +65,27 @@ function get_level_cells(z, h::Number)
     return cells
 end
 
+
+# Some constants used by trace_contour
+
+const lt, rt, up, dn = int8(1), int8(2), int8(3), int8(4)
+const ccw, cw = int8(1), int8(2)
+
+# Each row in the constants refer to a marching squares case,
+# while each column correspond to a search direction.
+# The exit_face LUT finds the edge where the contour leaves
+# The dir_r/c constants points to the location of the next cell.
+
+const dir_r = int8(
+    [-1 +0 +0 +1 +0 +1 +1 +0 -1 +0 +0 +0 -1 +0 +0 -1 +1 +0 +0;
+     +0 -1 +0 +0 +0 -1 +0 +1 +1 +0 +1 +0 +0 -1 +0 +0 +0 +1 -1]')
+const dir_c = int8(
+    [+0 +1 +1 +0 +0 +0 +0 -1 +0 +0 +1 -1 +0 -1 +0 +0 +0 -1 -1;
+     -1 +0 -1 +1 +0 +0 -1 +0 +0 +0 +0 +1 +1 +0 +0 -1 -1 +0 +0]')
+const exit_face = int8(
+    [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up dn lt;
+     lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
+
 function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
     contours = Array(ContourLine, 0)
 
@@ -83,24 +104,6 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
     # clockwise direction until it either ends up where it started
     # or at one of the boundaries.  It then tries to trace the contour
     # in the opposite direction.
-
-    const lt::Int8,rt::Int8,up::Int8,dn::Int8 = 1,2,3,4
-    const ccw::Int8, cw::Int8 = 1, 2
-
-    # Each row in the constants refer to a marching squares case,
-    # while each column correspond to a search direction.
-    # The exit_face LUT finds the edge where the contour leaves
-    # The dir_r/c constants points to the location of the next cell.
-
-    const dir_r = int8(
-        [-1 +0 +0 +1 +0 +1 +1 +0 -1 +0 +0 +0 -1 +0 +0 -1 +1 +0 +0;
-         +0 -1 +0 +0 +0 -1 +0 +1 +1 +0 +1 +0 +0 -1 +0 +0 +0 +1 -1]')
-    const dir_c = int8(
-        [+0 +1 +1 +0 +0 +0 +0 -1 +0 +0 +1 -1 +0 -1 +0 +0 +0 -1 -1;
-         -1 +0 -1 +1 +0 +0 -1 +0 +0 +0 +0 +1 +1 +0 +0 -1 -1 +0 +0]')
-    const exit_face = int8(
-        [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up dn lt;
-         lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
 
      # Helper functions
 
