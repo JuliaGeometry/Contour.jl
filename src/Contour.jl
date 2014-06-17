@@ -136,7 +136,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
      # Given a starting cell and a search direction, keep adding
      # contour crossing until we close the contour or hit a boundary
      function chase(row::Int, col::Int, dir::Int8, contour::ContourLine)
-         local case::Int8
+         case = int8(0)
          while (row,col) != (r0,c0) && 0 < row < r_max && 0 < col < c_max
              case = cells[(row,col)]
              add_vertex(row, col, exit_face[case], dir, contour)
