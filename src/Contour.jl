@@ -18,11 +18,11 @@ contours(x,y,z,levels) = [contours(x,y,z,l) for l in levels]
 
 # The marching squares algorithm defines 16 cell types
 # based on the edges that a contour line enters and exits
-# through. The vertices of cells are ordered as follows 
+# through. The vertices of cells are ordered as follows
 # 4 +---+ 3
 #   |   |
 # 1 +---+ 2
-# A contour line enters an edge with vertices v_i and 
+# A contour line enters an edge with vertices v_i and
 # v_j (counter-clockwise order) if z(v_i) <= h < z(v_j)
 # and exits the edge if z(v_i) > h >= z(v_j).
 # Each cell type is identified with 4 bits, with each
@@ -42,13 +42,13 @@ function get_level_cells(z, h::Number)
     for c in 1:c_max-1
         for r in 1:r_max-1
             case::Int8
-            case = 1(z[r,c] > h)     | 
-                   2(z[r,c+1] > h)   | 
+            case = 1(z[r,c] > h)     |
+                   2(z[r,c+1] > h)   |
                    4(z[r+1,c+1] > h) |
                    8(z[r+1,c] > h)
 
-            # Process ambigous cells (case 5 and 10) using 
-            # a bilinear interplotation of the cell-center value.  
+            # Process ambigous cells (case 5 and 10) using
+            # a bilinear interplotation of the cell-center value.
             # We add cases 16-19 to handle these cells
             if case != 0 && case != 15
                 if case == 5
@@ -86,6 +86,16 @@ const exit_face = int8(
     [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up dn lt;
      lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
 
+function add_vertex!(pos::(Number, Number), dir::Int8, contour::ContourLine)
+    if dir == ccw
+        push!(contour.x, pos[1])
+        push!(contour.y, pos[2])
+    else
+        unshift!(contour.x, pos[1])
+        unshift!(contour.y, pos[2])
+    end
+end
+
 function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
     contours = Array(ContourLine, 0)
 
@@ -110,7 +120,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
      # Given the row and column indices of the lower left
      # vertex, add the location where the contour level
      # crosses the specified edge.
-     function add_vertex(row::Int, col::Int, edge::Int8, dir::Int8, contour::ContourLine)
+     function interpolate(row::Int, col::Int, edge::Int8)
          if edge == lt
              yi = row + (h - z[row,col])/(z[row+1,col] - z[row,col])
              xi = col
@@ -124,13 +134,8 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
              yi = row
              xi = col + (h - z[row,col])/(z[row,col+1] - z[row,col])
          end
-         if dir == ccw
-             push!(contour.x, xi)
-             push!(contour.y, yi)
-         else
-             unshift!(contour.x, xi)
-             unshift!(contour.y, yi)
-         end
+
+         return xi, yi
      end
 
      # Given a starting cell and a search direction, keep adding
@@ -139,7 +144,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
          case = int8(0)
          while (row,col) != (r0,c0) && 0 < row < r_max && 0 < col < c_max
              case = cells[(row,col)]
-             add_vertex(row, col, exit_face[case], dir, contour)
+             add_vertex!(interpolate(row, col, exit_face[case]), dir, contour)
              if case == 16
                  cells[(row,col)] = 4
              elseif case == 17
@@ -169,7 +174,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         case = case0
 
         # Add the contour entry location for cell (r0,c0)
-        add_vertex(r0, c0, exit_face[case], cw, contour)
+        add_vertex!(interpolate(r0, c0, exit_face[case]), cw, contour)
         (r,c) = (r0 + dir_r[case,ccw], c0 + dir_c[case,ccw])
         if case < 15
             delete!(cells, (r0,c0))
