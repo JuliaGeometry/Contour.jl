@@ -116,9 +116,18 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
 
         # Start trace in CCW direction
         # Add starting point
-        cwdir_f[case](r0, c0)
+         cwdir_f[case](r0, c0)
+        ccwdir_f[case](r0, c0)
         (r,c) = (r0 + ccwdir_r[case], c0 + ccwdir_c[case])
-        if case < 15
+        if case0 == 16
+            cells[(r0,c0)] = 4
+        elseif case0 == 17
+            cells[(r0,c0)] = 13
+        elseif case0 == 18
+            cells[(r0,c0)] = 2
+        elseif case0 == 19
+            cells[(r0,c0)] = 11
+        else
             delete!(cells, (r0,c0))
         end
 
