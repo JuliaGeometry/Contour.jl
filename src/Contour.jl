@@ -86,7 +86,7 @@ const exit_face = int8(
     [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up dn lt;
      lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
 
-function add_vertex!(pos::(Number, Number), dir::Int8, contour::ContourLine)
+function add_vertex!(contour::ContourLine, pos::(Number, Number), dir::Int8)
     if dir == ccw
         push!(contour.x, pos[1])
         push!(contour.y, pos[2])
@@ -94,6 +94,27 @@ function add_vertex!(pos::(Number, Number), dir::Int8, contour::ContourLine)
         unshift!(contour.x, pos[1])
         unshift!(contour.y, pos[2])
     end
+end
+
+# Given the row and column indices of the lower left
+# vertex, add the location where the contour level
+# crosses the specified edge.
+function interpolate(z, h::Number, row::Int, col::Int, edge::Int8)
+    if edge == lt
+        yi = row + (h - z[row,col])/(z[row+1,col] - z[row,col])
+        xi = col
+    elseif edge == rt
+        yi = row + (h - z[row,col+1])/(z[row+1,col+1] - z[row,col+1])
+        xi = col + 1
+    elseif edge == up
+        yi = row + 1
+        xi = col + (h - z[row+1,col])/(z[row+1,col+1] - z[row+1,col])
+    elseif edge == dn
+        yi = row
+        xi = col + (h - z[row,col])/(z[row,col+1] - z[row,col])
+    end
+
+    return xi, yi
 end
 
 function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
@@ -117,34 +138,13 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
 
      # Helper functions
 
-     # Given the row and column indices of the lower left
-     # vertex, add the location where the contour level
-     # crosses the specified edge.
-     function interpolate(row::Int, col::Int, edge::Int8)
-         if edge == lt
-             yi = row + (h - z[row,col])/(z[row+1,col] - z[row,col])
-             xi = col
-         elseif edge == rt
-             yi = row + (h - z[row,col+1])/(z[row+1,col+1] - z[row,col+1])
-             xi = col + 1
-         elseif edge == up
-             yi = row + 1
-             xi = col + (h - z[row+1,col])/(z[row+1,col+1] - z[row+1,col])
-         elseif edge == dn
-             yi = row
-             xi = col + (h - z[row,col])/(z[row,col+1] - z[row,col])
-         end
-
-         return xi, yi
-     end
-
      # Given a starting cell and a search direction, keep adding
      # contour crossing until we close the contour or hit a boundary
      function chase(row::Int, col::Int, dir::Int8, contour::ContourLine)
          case = int8(0)
          while (row,col) != (r0,c0) && 0 < row < r_max && 0 < col < c_max
              case = cells[(row,col)]
-             add_vertex!(interpolate(row, col, exit_face[case]), dir, contour)
+             add_vertex!(contour, interpolate(z, h, row, col, exit_face[case]), dir)
              if case == 16
                  cells[(row,col)] = 4
              elseif case == 17
@@ -174,7 +174,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         case = case0
 
         # Add the contour entry location for cell (r0,c0)
-        add_vertex!(interpolate(r0, c0, exit_face[case]), cw, contour)
+        add_vertex!(contour, interpolate(z, h, r0, c0, exit_face[case]), cw)
         (r,c) = (r0 + dir_r[case,ccw], c0 + dir_c[case,ccw])
         if case < 15
             delete!(cells, (r0,c0))
