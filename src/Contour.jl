@@ -175,8 +175,17 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
 
         # Add the contour entry location for cell (r0,c0)
         add_vertex!(contour, interpolate(z, h, r0, c0, exit_face[case]), cw)
+        add_vertex!(contour, interpolate(z, h, r0, c0, exit_face[case]), ccw)
         (r,c) = (r0 + dir_r[case,ccw], c0 + dir_c[case,ccw])
-        if case < 15
+        if case == 16
+            cells[(r0,c0)] = 4
+        elseif case == 17
+            cells[(r0,c0)] = 13
+        elseif case == 18
+            cells[(r0,c0)] = 2
+        elseif case == 19
+            cells[(r0,c0)] = 11
+        else
             delete!(cells, (r0,c0))
         end
 
