@@ -75,7 +75,7 @@ const ccw, cw = int8(1), int8(2)
 # while each column correspond to a search direction.
 # The exit_face LUT finds the edge where the contour leaves
 # The dir_r/c constants points to the location of the next cell.
-
+# col 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19
 const dir_r = int8(
     [-1 +0 +0 +1 +0 +1 +1 +0 -1 +0 +0 +0 -1 +0 +0 -1 +1 +0 +0;
      +0 -1 +0 +0 +0 -1 +0 +1 +1 +0 +1 +0 +0 -1 +0 +0 +0 +1 -1]')
@@ -83,7 +83,7 @@ const dir_c = int8(
     [+0 +1 +1 +0 +0 +0 +0 -1 +0 +0 +1 -1 +0 -1 +0 +0 +0 -1 -1;
      -1 +0 -1 +1 +0 +0 -1 +0 +0 +0 +0 +1 +1 +0 +0 -1 -1 +0 +0]')
 const exit_face = int8(
-    [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up dn lt;
+    [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up lt lt;
      lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
 
 function add_vertex!(contour::ContourLine, pos::(Number, Number), dir::Int8)
@@ -144,7 +144,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
          case = int8(0)
          while (row,col) != (r0,c0) && 0 < row < r_max && 0 < col < c_max
              case = cells[(row,col)]
-             add_vertex!(contour, interpolate(z, h, row, col, exit_face[case]), dir)
+             add_vertex!(contour, interpolate(z, h, row, col, exit_face[case,dir]), dir)
              if case == 16
                  cells[(row,col)] = 4
              elseif case == 17
@@ -174,8 +174,9 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         case = case0
 
         # Add the contour entry location for cell (r0,c0)
-        add_vertex!(contour, interpolate(z, h, r0, c0, exit_face[case]), cw)
-        add_vertex!(contour, interpolate(z, h, r0, c0, exit_face[case]), ccw)
+
+        add_vertex!(contour, interpolate(z, h, r0, c0, exit_face[case,cw]), cw)
+        add_vertex!(contour, interpolate(z, h, r0, c0, exit_face[case,ccw]), ccw)
         (r,c) = (r0 + dir_r[case,ccw], c0 + dir_c[case,ccw])
         if case == 16
             cells[(r0,c0)] = 4

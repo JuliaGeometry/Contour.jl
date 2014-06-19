@@ -72,10 +72,10 @@ cells = Contour.get_level_cells(Z,h)
 lines = Contour.trace_contour(Z, h, cells)
 @test length(lines) == 2
 @test_approx_eq_eps lines[1].x [1.5,1.0] 0.1Δ
-@test_approx_eq_eps lines[1].y [1.0,1.5] 0.1Δ
+@test_approx_eq_eps lines[1].y [2.0,1.5] 0.1Δ
 
 @test_approx_eq_eps lines[2].x [1.5,2.0] 0.1Δ
-@test_approx_eq_eps lines[2].y [2.0,1.5] 0.1Δ
+@test_approx_eq_eps lines[2].y [1.0,1.5] 0.1Δ
 
 # Cell Case == 19
 Z = [0 2;
