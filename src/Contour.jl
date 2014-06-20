@@ -1,14 +1,22 @@
 module Contour
 
+using ImmutableArrays
 using Grid
 
-type ContourLine
-    x::Vector{Float64}
-    y::Vector{Float64}
+type Curve2{T}
+    vertices::Vector{Vector2{T}}
 end
-ContourLine() = ContourLine(Array(Float64,0), Array(Float64,0))
 
-export ContourLine, contour_layers, contours
+# Helper functions to extract x and y components curves
+curve_x(c::Curve2) = [x[1] for x in c.vertices]
+curve_y(c::Curve2) = [x[2] for x in c.vertices]
+
+type ContourLevel
+    level::Float64
+    lines::Vector{Curve2}
+end
+
+export ContourLine, contours
 
 function contours(x, y, z, level::Number)
     # Todo: size checking on x,y,z
@@ -86,13 +94,11 @@ const exit_face = int8(
     [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up lt lt;
      lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
 
-function add_vertex!(contour::ContourLine, pos::(Number, Number), dir::Int8)
+function add_vertex!(curve::Curve2, pos::Vector2, dir::Int8)
     if dir == ccw
-        push!(contour.x, pos[1])
-        push!(contour.y, pos[2])
+        push!(curve.vertices, pos)
     else
-        unshift!(contour.x, pos[1])
-        unshift!(contour.y, pos[2])
+        unshift!(curve.vertices, pos)
     end
 end
 
@@ -114,11 +120,13 @@ function interpolate(z, h::Number, xi::Int, yi::Int, edge::Int8)
         x = xi + (h - z[xi,yi])/(z[xi+1,yi] - z[xi,yi])
     end
 
-    return x, y
+    Vector2(promote(x, y)...)
 end
 
 function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
-    contours = Array(ContourLine, 0)
+    fieldType = typeof(0.5*z[1,1])
+
+    contours = ContourLevel(h, [])
 
     local yi::Int
     local xi::Int
@@ -140,11 +148,11 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
 
      # Given a starting cell and a search direction, keep adding
      # contour crossing until we close the contour or hit a boundary
-     function chase(xi::Int, yi::Int, dir::Int8, contour::ContourLine)
+     function chase(xi::Int, yi::Int, dir::Int8, curve::Curve2)
          case = int8(0)
          while (xi,yi) != (xi_0,yi_0) && 0 < yi < yi_max && 0 < xi < xi_max
              case = cells[(xi,yi)]
-             add_vertex!(contour, interpolate(z, h, xi, yi, exit_face[case,dir]), dir)
+             add_vertex!(curve, interpolate(z, h, xi, yi, exit_face[case,dir]), dir)
              if case == 16
                  cells[(xi,yi)] = 4
              elseif case == 17
@@ -166,7 +174,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         case::Int8
         case0::Int8
 
-        contour = ContourLine()
+        contour = Curve2(Array(Vector2{fieldType}, 0))
 
         # Pick initial box
         (xi_0, yi_0), case0 = first(cells)
@@ -200,7 +208,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
 
         # Start trace in CW direction
         chase(xi, yi, cw, contour)
-        push!(contours, contour)
+        push!(contours.lines, contour)
     end
 
     return contours
