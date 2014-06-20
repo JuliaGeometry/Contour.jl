@@ -126,7 +126,7 @@ end
 function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
     fieldType = typeof(0.5*z[1,1])
 
-    contours = ContourLevel(h, [])
+    contours = ContourLevel(h, Array(Curve2,0))
 
     local yi::Int
     local xi::Int
