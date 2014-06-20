@@ -1,10 +1,5 @@
 using Grid
 
-function approx_eq(a, b, tol)
-    abs(a - b) < tol
-end
-approx_eq(a, b) = approx_eq(a, b, 1e-6)
-
 # Setup test axes that will be shared among the tests
 Δ = 0.01
 X = [-2:Δ:2]
@@ -17,7 +12,7 @@ Y_c = InterpGrid(Y, BCnan, InterpLinear)
 #
 # Contour lines for f(x,y) = x^2 + y^2 lie on circles around the origin
 #
-Z = [x^2 + y^2 for y in Y, x in X]
+Z = [x^2 + y^2 for x in X, y in Y]
 # Choose level that is at least on grid size away from origin
 h = (Δ + (3 - Δ)rand())
 lines = Contour.contours(X,Y,Z, h)
