@@ -13,7 +13,7 @@ Y_c = InterpGrid(Y, BCnan, InterpLinear);
 #
 # Contour lines for f(x,y) = x^2 + y^2 lie on circles around the origin
 #
-Z = [x^2 + y^2 for x in X, y in Y];
+Z = [(x^2 + y^2)::Float64 for x in X, y in Y];
 # Choose level that is at least on grid size away from origin
 h = (Δ + (3 - Δ)rand());
 contourlevels = Contour.contours(X,Y,Z, h)
