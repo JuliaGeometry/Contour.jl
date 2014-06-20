@@ -11,12 +11,12 @@ end
 curve_x(c::Curve2) = [x[1] for x in c.vertices]
 curve_y(c::Curve2) = [x[2] for x in c.vertices]
 
-type ContourLevel
+type ContourLevel{T}
     level::Float64
-    lines::Vector{Curve2}
+    lines::Vector{Curve2{T}}
 end
 
-export ContourLine, contours
+export ContourLevel, Curve2, contours
 
 function contours(x, y, z, level::Number)
     # Todo: size checking on x,y,z
@@ -123,10 +123,10 @@ function interpolate(z, h::Number, xi::Int, yi::Int, edge::Int8)
     Vector2(promote(x, y)...)
 end
 
-function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
+function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::T, cells::Dict{(Int,Int),Int8})
     fieldType = typeof(0.5*z[1,1])
 
-    contours = ContourLevel(h, Array(Curve2,0))
+    contours = ContourLevel(h, Array(Curve2{T},0))
 
     local yi::Int
     local xi::Int
@@ -174,7 +174,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         case::Int8
         case0::Int8
 
-        contour = Curve2(Array(Vector2{fieldType}, 0))
+        contour = Curve2(Array(Vector2{T}, 0))
 
         # Pick initial box
         (xi_0, yi_0), case0 = first(cells)
