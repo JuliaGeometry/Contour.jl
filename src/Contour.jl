@@ -1,7 +1,6 @@
 module Contour
 
 using ImmutableArrays
-using Grid
 
 type Curve2{T}
     vertices::Vector{Vector2{T}}
@@ -47,9 +46,10 @@ function get_level_cells(z, h::Number)
     cells = Dict{(Int,Int),Int8}()
     xi_max, yi_max = size(z)
 
+    local case::Int8
+
     for xi in 1:xi_max-1
         for yi in 1:yi_max-1
-            case::Int8
             case = 1(z[xi,yi] > h)     |
                    2(z[xi+1,yi] > h)   |
                    4(z[xi+1,yi+1] > h) |
@@ -94,37 +94,37 @@ const exit_face = int8(
     [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up lt lt;
      lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
 
-function add_vertex!(curve::Curve2, pos::Vector2, dir::Int8)
+function add_vertex!{T}(curve::Curve2{T}, pos::(T, T), dir::Int8)
     if dir == ccw
-        push!(curve.vertices, pos)
+        push!(curve.vertices, Vector2{T}(pos...))
     else
-        unshift!(curve.vertices, pos)
+        unshift!(curve.vertices, Vector2{T}(pos...))
     end
 end
 
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate(z, h::Number, xi::Int, yi::Int, edge::Int8)
+function interpolate{T<:FloatingPoint}(z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::Int8)
     if edge == lt
         y = yi + (h - z[xi,yi])/(z[xi,yi+1] - z[xi,yi])
-        x = xi
+        x = convert(T,xi)
     elseif edge == rt
         y = yi + (h - z[xi+1,yi])/(z[xi+1,yi+1] - z[xi+1,yi])
-        x = xi + 1
+        x = convert(T, xi + 1)
     elseif edge == up
-        y = yi + 1
+        y = convert(T, yi + 1)
         x = xi + (h - z[xi,yi+1])/(z[xi+1,yi+1] - z[xi,yi+1])
     elseif edge == dn
-        y = yi
+        y = convert(T, yi)
         x = xi + (h - z[xi,yi])/(z[xi+1,yi] - z[xi,yi])
     end
 
-    Vector2(promote(x, y)...)
+    return x,y
+
 end
 
-function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::T, cells::Dict{(Int,Int),Int8})
-    fieldType = typeof(0.5*z[1,1])
+function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(Int,Int),Int8})
 
     contours = ContourLevel(h, Array(Curve2{T},0))
 
