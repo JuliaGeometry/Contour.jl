@@ -6,10 +6,6 @@ type Curve2{T}
     vertices::Vector{Vector2{T}}
 end
 
-# Helper functions to extract x and y components curves
-curve_x(c::Curve2) = [x[1] for x in c.vertices]
-curve_y(c::Curve2) = [x[2] for x in c.vertices]
-
 type ContourLevel{T}
     level::Float64
     lines::Vector{Curve2{T}}
