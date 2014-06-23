@@ -5,11 +5,13 @@ using ImmutableArrays
 type Curve2{T}
     vertices::Vector{Vector2{T}}
 end
+Curve2{T}(::Type{T}) = Curve2(Vector2{T}[])
 
-type ContourLevel{T}
+type ContourLevel
     level::Float64
-    lines::Vector{Curve2{T}}
+    lines::Vector{Curve2{Float64}}
 end
+ContourLevel(h) = ContourLevel(h, Curve2{Float64}[])
 
 export ContourLevel, Curve2, contours
 
@@ -145,9 +147,9 @@ return (xi,yi), case
 end
 
 
-function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(Int,Int),Int8})
+function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
 
-    contours = ContourLevel(h, Array(Curve2{T},0))
+    contours = ContourLevel(h)
 
     local yi::Int
     local xi::Int
@@ -169,7 +171,7 @@ function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(I
         case::Int8
         case0::Int8
 
-        contour = Curve2(Array(Vector2{T}, 0))
+        contour = Curve2(Float64)
 
         # Pick initial box
         (xi_0, yi_0), case0 = first(cells)
