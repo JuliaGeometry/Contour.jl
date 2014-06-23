@@ -16,7 +16,7 @@ Y_c = InterpGrid(Y, BCnan, InterpLinear)
 Z = [(x^2 + y^2)::Float64 for x in X, y in Y]
 # Choose level that is at least on grid size away from origin
 h = (Δ + (3 - Δ)rand())
-contourlevels = Contour.contours(X,Y,Z, h)
+contourlevels = Contour.contour(X,Y,Z, h)
 for line in contourlevels.lines
     for v in line.vertices
         @test_approx_eq_eps (X_c[v[1]]^2 + Y_c[v[2]]^2 ) h 0.1Δ

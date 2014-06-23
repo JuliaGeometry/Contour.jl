@@ -13,13 +13,21 @@ type ContourLevel
 end
 ContourLevel(h) = ContourLevel(h, Curve2{Float64}[])
 
-export ContourLevel, Curve2, contours
+export ContourLevel, Curve2, contour, contours
 
-function contours(x, y, z, level::Number)
+function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
     trace_contour(z,level,get_level_cells(z,level))
 end
-contours(x,y,z,levels) = [contours(x,y,z,l) for l in levels]
+contours(x,y,z,levels) = [contour(x,y,z,l) for l in levels]
+function contours(x,y,z,Nlevels::Integer)
+    zmin,zmax = extrema(z)
+    dz = (zmax-zmin) / (Nlevels+1)
+    levels = range(zmin+dz,dz,Nlevels)
+    contours(x,y,z,levels)
+end
+contours(x,y,z) = contours(x,y,z,10)
+
 
 # The marching squares algorithm defines 16 cell types
 # based on the edges that a contour line enters and exits
