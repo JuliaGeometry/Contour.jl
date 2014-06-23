@@ -124,6 +124,31 @@ function interpolate{T<:FloatingPoint}(z::Matrix{T}, h::Number, xi::Int, yi::Int
 
 end
 
+# Given a starting cell and a search direction, keep adding
+# contour crossing until we close the contour or hit a boundary
+function chase(z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, dir::Int8, curve::Curve2)
+    case = int8(0)
+    while (xi,yi) != (xi_0,yi_0) && 0 < yi < yi_max && 0 < xi < xi_max
+        case = cells[(xi,yi)]
+        add_vertex!(curve, interpolate(z, h, xi, yi, exit_face[case,dir]), dir)
+        if case == 16
+            cells[(xi,yi)] = 4
+        elseif case == 17
+            cells[(xi,yi)] = 13
+        elseif case == 18
+            cells[(xi,yi)] = 2
+        elseif case == 19
+            cells[(xi,yi)] = 11
+        else
+            delete!(cells, (xi,yi))
+        end
+    (xi,yi) = (xi + dir_x[case,dir], yi + dir_y[case,dir])
+end
+
+return (xi,yi), case
+end
+
+
 function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(Int,Int),Int8})
 
     contours = ContourLevel(h, Array(Curve2{T},0))
@@ -144,32 +169,6 @@ function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(I
     # or at one of the boundaries.  It then tries to trace the contour
     # in the opposite direction.
 
-     # Helper functions
-
-     # Given a starting cell and a search direction, keep adding
-     # contour crossing until we close the contour or hit a boundary
-     function chase(xi::Int, yi::Int, dir::Int8, curve::Curve2)
-         case = int8(0)
-         while (xi,yi) != (xi_0,yi_0) && 0 < yi < yi_max && 0 < xi < xi_max
-             case = cells[(xi,yi)]
-             add_vertex!(curve, interpolate(z, h, xi, yi, exit_face[case,dir]), dir)
-             if case == 16
-                 cells[(xi,yi)] = 4
-             elseif case == 17
-                 cells[(xi,yi)] = 13
-             elseif case == 18
-                 cells[(xi,yi)] = 2
-             elseif case == 19
-                 cells[(xi,yi)] = 11
-             else
-                 delete!(cells, (xi,yi))
-             end
-             (xi,yi) = (xi + dir_x[case,dir], yi + dir_y[case,dir])
-         end
-
-         return (xi,yi), case
-     end
-
     while length(cells) > 0
         case::Int8
         case0::Int8
@@ -182,7 +181,6 @@ function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(I
         case = case0
 
         # Add the contour entry location for cell (xi_0,yi_0)
-
         add_vertex!(contour, interpolate(z, h, xi_0, yi_0, exit_face[case,cw]), cw)
         add_vertex!(contour, interpolate(z, h, xi_0, yi_0, exit_face[case,ccw]), ccw)
         (xi,yi) = (xi_0 + dir_x[case,ccw], yi_0 + dir_y[case,ccw])
@@ -199,7 +197,7 @@ function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(I
         end
 
         # Start trace in CCW direction
-        (xi,yi), case = chase(xi, yi, ccw, contour)
+        (xi,yi), case = chase(z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, ccw, contour)
 
         # Add the contour exit location for cell (r0,c0)
         if (xi,yi) != (xi_0,yi_0)
@@ -207,7 +205,7 @@ function trace_contour{T<:FloatingPoint}(z::Matrix{T}, h::Number, cells::Dict{(I
         end
 
         # Start trace in CW direction
-        chase(xi, yi, cw, contour)
+        chase(z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, cw, contour)
         push!(contours.lines, contour)
     end
 
