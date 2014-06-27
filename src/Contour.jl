@@ -1,6 +1,7 @@
 module Contour
 
 using ImmutableArrays
+using Grid
 
 type Curve2{T}
     vertices::Vector{Vector2{T}}
@@ -17,7 +18,7 @@ export ContourLevel, Curve2, contour, contours
 
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
-    trace_contour(z,level,get_level_cells(z,level))
+    trace_contour(x, y, z,level,get_level_cells(z,level))
 end
 contours(x,y,z,levels) = [contour(x,y,z,l) for l in levels]
 function contours(x,y,z,Nlevels::Integer)
@@ -111,32 +112,32 @@ end
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate{T<:FloatingPoint}(z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::Int8)
+function interpolate{T<:FloatingPoint}(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::Int8)
     if edge == lt
-        y = yi + (h - z[xi,yi])/(z[xi,yi+1] - z[xi,yi])
-        x = convert(T,xi)
+        y_interp = y[yi] + (y[yi+1] - y[yi])*(h - z[xi,yi])/(z[xi,yi+1] - z[xi,yi])
+        x_interp = x[xi]
     elseif edge == rt
-        y = yi + (h - z[xi+1,yi])/(z[xi+1,yi+1] - z[xi+1,yi])
-        x = convert(T, xi + 1)
+        y_interp = y[yi] + (y[yi+1] - y[yi])*(h - z[xi+1,yi])/(z[xi+1,yi+1] - z[xi+1,yi])
+        x_interp = x[xi + 1]
     elseif edge == up
-        y = convert(T, yi + 1)
-        x = xi + (h - z[xi,yi+1])/(z[xi+1,yi+1] - z[xi,yi+1])
+        y_interp = y[yi + 1]
+        x_interp = x[xi] + (x[xi+1] - x[xi])*(h - z[xi,yi+1])/(z[xi+1,yi+1] - z[xi,yi+1])
     elseif edge == dn
-        y = convert(T, yi)
-        x = xi + (h - z[xi,yi])/(z[xi+1,yi] - z[xi,yi])
+        y_interp = y[yi]
+        x_interp = x[xi] + (x[xi+1] - x[xi])*(h - z[xi,yi])/(z[xi+1,yi] - z[xi,yi])
     end
 
-    return x,y
+    return x_interp, y_interp
 
 end
 
 # Given a starting cell and a search direction, keep adding
 # contour crossing until we close the contour or hit a boundary
-function chase(z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, dir::Int8, curve::Curve2)
+function chase(x, y, z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, dir::Int8, curve::Curve2)
     case = int8(0)
     while (xi,yi) != (xi_0,yi_0) && 0 < yi < yi_max && 0 < xi < xi_max
         case = cells[(xi,yi)]
-        add_vertex!(curve, interpolate(z, h, xi, yi, exit_face[case,dir]), dir)
+        add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_face[case,dir]), dir)
         if case == 16
             cells[(xi,yi)] = 4
         elseif case == 17
@@ -155,7 +156,7 @@ return (xi,yi), case
 end
 
 
-function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
+function trace_contour(x, y, z, h::Number, cells::Dict{(Int,Int),Int8})
 
     contours = ContourLevel(h)
 
@@ -187,8 +188,8 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         case = case0
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        add_vertex!(contour, interpolate(z, h, xi_0, yi_0, exit_face[case,cw]), cw)
-        add_vertex!(contour, interpolate(z, h, xi_0, yi_0, exit_face[case,ccw]), ccw)
+        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, exit_face[case,cw]), cw)
+        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, exit_face[case,ccw]), ccw)
         (xi,yi) = (xi_0 + dir_x[case,ccw], yi_0 + dir_y[case,ccw])
         if case == 16
             cells[(xi_0,yi_0)] = 4
@@ -203,7 +204,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         end
 
         # Start trace in CCW direction
-        (xi,yi), case = chase(z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, ccw, contour)
+        (xi,yi), case = chase(x, y, z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, ccw, contour)
 
         # Add the contour exit location for cell (r0,c0)
         if (xi,yi) != (xi_0,yi_0)
@@ -211,7 +212,7 @@ function trace_contour(z, h::Number, cells::Dict{(Int,Int),Int8})
         end
 
         # Start trace in CW direction
-        chase(z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, cw, contour)
+        chase(x, y, z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, cw, contour)
         push!(contours.lines, contour)
     end
 
