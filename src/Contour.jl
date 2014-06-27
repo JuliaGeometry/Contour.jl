@@ -1,7 +1,6 @@
 module Contour
 
 using ImmutableArrays
-using Grid
 
 type Curve2{T}
     vertices::Vector{Vector2{T}}
