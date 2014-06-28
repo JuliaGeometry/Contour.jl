@@ -25,7 +25,7 @@ y = [-4:0.02:5]
 z = [(xi^2 + yi^2)::Float64 for xi in x, yi in y]
 ```
 
-Let's find the contour line corresponding to `z = 4.0`:`:
+Let's find the contour line corresponding to `z = 4.0`:
 
 ```julia
 h = 4.0
