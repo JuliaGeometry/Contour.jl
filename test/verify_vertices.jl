@@ -2,9 +2,12 @@ using ImmutableArrays
 # using Grid
 
 # Setup test axes that will be shared among the tests
+
+# Shift the axes so that they do not line up with
+# integer values
 Δ = 0.01
-X = [-2:Δ:2]
-Y = [-3:Δ:3]
+X = [0:Δ:4] + π
+Y = [0:Δ:3] + φ
 
 # TEST CASE 1
 #
@@ -16,7 +19,7 @@ h = (Δ + (3 - Δ)rand())
 contourlevels = Contour.contour(X,Y,Z, h)
 for line in contourlevels.lines
     for v in line.vertices
-        @test_approx_eq_eps (v[1]^2 + v[2]^2 ) h 0.1Δ
+        @test_approx_eq_eps ((v[1] - π)^2 + (v[2] - φ)^2 ) h 0.1Δ
     end
 end
 
