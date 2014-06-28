@@ -11,7 +11,8 @@ type ContourLevel
     level::Float64
     lines::Vector{Curve2{Float64}}
 end
-ContourLevel(h) = ContourLevel(h, Curve2{Float64}[])
+ContourLevel(h::Float64) = ContourLevel(h, Curve2{Float64}[])
+ContourLevel(h::Real) = ContourLevel(float64(h))
 
 export ContourLevel, Curve2, contour, contours
 
