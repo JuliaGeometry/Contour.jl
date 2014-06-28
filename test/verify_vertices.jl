@@ -22,6 +22,21 @@ for line in contourlevels.lines
     end
 end
 
+# TEST CASE 1.5
+#
+# Same as test case 1, but with a shifted center
+#
+h = 1
+x0,y0 = (.5,-1.5)
+Z = Float64[(x-x0)^2+(y-y0)^2 for x in X, y in Y]
+
+contourlevels = Contour.contour(X, Y, Z, h)
+for line in contourlevels.lines
+    for v in line.vertices
+        @test_approx_eq_eps ((v[1]-x0)^2 + (v[2]-y0)^2) h 0.01Δ
+    end
+end
+
 # TEST CASE 2
 #
 # Check that ambigious cells (5, 10) are handled correctly
