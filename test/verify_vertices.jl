@@ -14,12 +14,12 @@ Y = [0:Δ:3] + φ
 # Contour lines for f(x,y) = x^2 + y^2 lie on circles around the origin
 #
 Z = [(x^2 + y^2)::Float64 for x in X, y in Y]
-# Choose level that is at least on grid size away from origin
-h = (Δ + (3 - Δ)rand())
+h = rand()*(maximum(Z) - minimum(Z)) + minimum(Z)
+
 contourlevels = Contour.contour(X,Y,Z, h)
 for line in contourlevels.lines
     for v in line.vertices
-        @test_approx_eq_eps ((v[1] - π)^2 + (v[2] - φ)^2 ) h 0.1Δ
+        @test_approx_eq_eps v[1]^2 + v[2]^2 h 0.1Δ
     end
 end
 
