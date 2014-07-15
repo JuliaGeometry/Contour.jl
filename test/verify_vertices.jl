@@ -10,16 +10,22 @@ Y = [0:Δ:3] + φ
 
 # TEST CASE 1
 #
-# Contour lines for f(x,y) = x^2 + y^2 lie on circles around the origin
+# f(x,y) = x^2 + y^2
 #
 Z = [(x^2 + y^2)::Float64 for x in X, y in Y]
 h = rand()*(maximum(Z) - minimum(Z)) + minimum(Z)
 
 contourlevels = Contour.contour(X,Y,Z, h)
 for line in contourlevels.lines
+    # Contour vertices lie on a circle around the origin
     for v in line.vertices
         @test_approx_eq_eps v[1]^2 + v[2]^2 h 0.1Δ
     end
+
+    # coordinates() returns the correct values
+    xs,ys = coordinates(line)
+    xs .== [v[1] for v in line.vertices]
+    ys .== [v[2] for v in line.vertices]
 end
 
 # TEST CASE 1.5

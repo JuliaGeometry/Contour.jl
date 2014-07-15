@@ -2,7 +2,7 @@ module Contour
 
 using ImmutableArrays
 
-export ContourLevel, Curve2, contour, contours
+export ContourLevel, Curve2, contour, contours, coordinates
 
 type Curve2{T}
     vertices::Vector{Vector2{T}}
@@ -29,6 +29,17 @@ function contours(x,y,z,Nlevels::Integer)
 end
 contours(x,y,z) = contours(x,y,z,10)
 
+function coordinates(c::Curve2)
+    N = length(c.vertices)
+    xlist = Array(Float64,N)
+    ylist = Array(Float64,N)
+
+    for (i,v) in enumerate(c.vertices)
+        xlist[i] = v[1]
+        ylist[i] = v[2]
+    end
+    xlist, ylist
+end
 
 # The marching squares algorithm defines 16 cell types
 # based on the edges that a contour line enters and exits
