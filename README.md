@@ -48,6 +48,28 @@ julia> c.lines
  [0.05,1.99937],[0.04,1.9996],[0.03,1.99977],[0.02,1.9999],[0.01,1.99997],
  [0.0,2.0]])
  ```
+ 
+The format of the output data is intented to give as extensive information as possible about the contour line, in a format that can be generalized in the future, if/when something like a [`Geometry.jl` package](https://groups.google.com/forum/#!topic/julia-dev/vZpZ8NBX_z8) is created. Each contour level is represented by an instance of
+
+```julia
+type ContourLevel
+    level::Float64
+    lines::Vector{Curve2}
+end
+```
+
+where `Curve2` is in turn an abstraction over a curve in 2D (currently just a wrapper around a `Vector{Vector2}`, utilizing the `Vector2` type from [`ImmutableArrays.jl`](https://github.com/twadleigh/ImmutableArrays.jl) - this may change in the future).
+
+However, it can admittedly be a little difficult to use this information in an application. For example, if we want to plot the contour line, it is much more practical to have the coordinates of the contour vertices as two lists instead of this complicated structure. No worries, just use `coordinates`:
+
+```julia
+julia> xs, ys = coordinates(c.lines[1])
+([0.0,0.0,-1.73472e-18,-0.01,-0.02,-0.03,-0.04,-0.05,-0.06,-0.07  …  0.09,0.08,0.07,0.06,0.05,0.04,0.03,0.02,0.01,0.0],[2.0,2.0,2.0,1.99997,1.9999,1.99977,1.9996,1.99937,1.9991,1.99877  …  1.99796,1.99839,1.99877,1.9991,1.99937,1.9996,1.99977,1.9999,1.99997,2.0])
+
+julia> plot(xs, ys) # using your favorite plotting tool
+```
+
+`Contour.jl` makes sure that the coordinates are ordered correctly, and contours that close on themselves are given cyclically, so that e.g. `xs[1]==xs[end]` - in other words, plotting the contour does not require you to add the first point at the end manually to close the curve.
 
 We can also find the contours at multiple levels using `contours`, 
 which returns an array of `ContourLevel` types. 
