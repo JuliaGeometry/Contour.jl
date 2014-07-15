@@ -2,6 +2,8 @@ module Contour
 
 using ImmutableArrays
 
+export ContourLevel, Curve2, contour, contours
+
 type Curve2{T}
     vertices::Vector{Vector2{T}}
 end
@@ -13,8 +15,6 @@ type ContourLevel
 end
 ContourLevel(h::Float64) = ContourLevel(h, Curve2{Float64}[])
 ContourLevel(h::Real) = ContourLevel(float64(h))
-
-export ContourLevel, Curve2, contour, contours
 
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
