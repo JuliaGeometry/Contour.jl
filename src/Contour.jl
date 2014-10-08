@@ -43,29 +43,35 @@ end
 
 # The marching squares algorithm defines 16 cell types
 # based on the edges that a contour line enters and exits
-# through. The vertices of cells are ordered as follows
-# 4 +---+ 3
-#   |   |
-# 1 +---+ 2
-# A contour line enters an edge with vertices v_i and
-# v_j (counter-clockwise order) if z(v_i) <= h < z(v_j)
-# and exits the edge if z(v_i) > h >= z(v_j).
+# through. The edges of the cells are identified using
+# compass directions, while the vertices are ordered as
+# follows:
+#
+#      N
+#  4 +---+ 3
+# W  |   |  E
+#  1 +---+ 2
+#      S
+#
 # Each cell type is identified with 4 bits, with each
 # bit corresponding to a vertex (MSB -> 4, LSB -> 1).
 # A bit is set for vertex v_i is set if z(v_i) > h. So a cell
-# where a contour line only enters from the left and exits
-# through the top will have the cell type: 0b0111
+# where a contour line only enters from the W edge and exits
+# through the N edge will have the cell type: 0b0111
 # Note that there are two cases where there are two
 # lines crossing through the same cell: 0b0101, 0b1010.
-# In this implementation, we add four more cell types
-# in order to propertly identify these ambigous cases.
-
 const N, S, E, W = uint8(1), uint8(2), uint8(4), uint8(8)
 const NS, NE, NW = N|S, N|E, N|W
 const SN, SE, SW = S|N, S|E, S|W
 const EN, ES, EW = E|N, E|S, E|W
 const WN, WS, WE = W|N, W|S, W|E
 
+# The way a contour crossing goes through a cell is labeled
+# by combining compass directions (e.g. a NW crossing connects
+# the N edge and W edges of the cell).  The Cell type records
+# the type of crossing that a cell contains.  While most
+# cells will have only one crossing, cell type 5 and 10 will
+# have two crossings.
 type Cell
     crossings::Vector{Uint8}
 end
@@ -82,6 +88,7 @@ function get_next_edge!(cell::Cell, entry_edge::Uint8)
     error("There is no edge containing ", entry_edge)
 end
 
+# Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = [SW, SE, EW, NE, 0, NS, NW, NW, NS, 0, NE, EW, SE, SW]
 
 function get_level_cells(z, h::Number)
@@ -97,13 +104,13 @@ function get_level_cells(z, h::Number)
                    4(z[xi+1,yi+1] > h) |
                    8(z[xi,yi+1] > h)
 
-            # Process ambigous cells (case 5 and 10) using
-            # a bilinear interplotation of the cell-center value.
-            # We add cases 16-19 to handle these cells
+            # Contour does not go through these cells
             if case == 0 || case == 15
                 continue
             end
 
+            # Process ambigous cells (case 5 and 10) using
+            # a bilinear interplotation of the cell-center value.
             if case == 5
                 if 0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) >= h
                     cells[(xi,yi)] = Cell([NW, SE])
@@ -158,6 +165,8 @@ function interpolate{T<:FloatingPoint}(x, y, z::Matrix{T}, h::Number, xi::Int, y
     return x_interp, y_interp
 end
 
+# Given a cell and a starting edge, we follow the contour line until we either
+# hit the boundary of the input data, or we form a closed contour.
 function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, dir)
 
     xi, yi = xi_start, yi_start
@@ -206,10 +215,9 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Int,Int),Cell})
     (xi_max, yi_max) = size(z)
 
     # When tracing out contours, this algorithm picks an arbitrary
-    # starting cell, then first follows the contour in the counter
-    # clockwise direction until it either ends up where it started
-    # or at one of the boundaries.  It then tries to trace the contour
-    # in the opposite direction.
+    # starting cell, then first follows the contour in one direction
+    # until it either ends up where it started # or at one of the boundaries.  
+    # It then tries to trace the contour in the opposite direction.
 
     while length(cells) > 0
         contour = Curve2(Float64)
