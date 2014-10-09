@@ -43,25 +43,56 @@ end
 
 # The marching squares algorithm defines 16 cell types
 # based on the edges that a contour line enters and exits
-# through. The vertices of cells are ordered as follows
-# 4 +---+ 3
-#   |   |
-# 1 +---+ 2
-# A contour line enters an edge with vertices v_i and
-# v_j (counter-clockwise order) if z(v_i) <= h < z(v_j)
-# and exits the edge if z(v_i) > h >= z(v_j).
+# through. The edges of the cells are identified using
+# compass directions, while the vertices are ordered as
+# follows:
+#
+#      N
+#  4 +---+ 3
+# W  |   |  E
+#  1 +---+ 2
+#      S
+#
 # Each cell type is identified with 4 bits, with each
 # bit corresponding to a vertex (MSB -> 4, LSB -> 1).
 # A bit is set for vertex v_i is set if z(v_i) > h. So a cell
-# where a contour line only enters from the left and exits
-# through the top will have the cell type: 0b0111
+# where a contour line only enters from the W edge and exits
+# through the N edge will have the cell type: 0b0111
 # Note that there are two cases where there are two
 # lines crossing through the same cell: 0b0101, 0b1010.
-# In this implementation, we add four more cell types
-# in order to propertly identify these ambigous cases.
+const N, S, E, W = uint8(1), uint8(2), uint8(4), uint8(8)
+const NS, NE, NW = N|S, N|E, N|W
+const SN, SE, SW = S|N, S|E, S|W
+const EN, ES, EW = E|N, E|S, E|W
+const WN, WS, WE = W|N, W|S, W|E
+
+# The way a contour crossing goes through a cell is labeled
+# by combining compass directions (e.g. a NW crossing connects
+# the N edge and W edges of the cell).  The Cell type records
+# the type of crossing that a cell contains.  While most
+# cells will have only one crossing, cell type 5 and 10 will
+# have two crossings.
+type Cell
+    crossings::Vector{Uint8}
+end
+
+function get_next_edge!(cell::Cell, entry_edge::Uint8)
+    for (i,edge) in enumerate(cell.crossings)
+        if edge & entry_edge != 0
+            next_edge = edge $ entry_edge
+            deleteat!(cell.crossings, i)
+
+            return next_edge
+        end
+    end
+    error("There is no edge containing ", entry_edge)
+end
+
+# Maps cell type to crossing types for non-ambiguous cells
+const edge_LUT = [SW, SE, EW, NE, 0, NS, NW, NW, NS, 0, NE, EW, SE, SW]
 
 function get_level_cells(z, h::Number)
-    cells = Dict{(Int,Int),Int8}()
+    cells = Dict{(Int,Int),Cell}()
     xi_max, yi_max = size(z)
 
     local case::Int8
@@ -73,17 +104,27 @@ function get_level_cells(z, h::Number)
                    4(z[xi+1,yi+1] > h) |
                    8(z[xi,yi+1] > h)
 
+            # Contour does not go through these cells
+            if case == 0 || case == 15
+                continue
+            end
+
             # Process ambigous cells (case 5 and 10) using
             # a bilinear interplotation of the cell-center value.
-            # We add cases 16-19 to handle these cells
-            if case != 0 && case != 15
-                if case == 5
-                    cells[(xi,yi)] = 16 + (0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) > h)
-                elseif case == 10
-                    cells[(xi,yi)] = 18 + (0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) > h)
+            if case == 5
+                if 0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) >= h
+                    cells[(xi,yi)] = Cell([NW, SE])
                 else
-                    cells[(xi,yi)] = case
+                    cells[(xi,yi)] = Cell([NE, SW])
                 end
+            elseif case == 10
+                if 0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) >= h
+                    cells[(xi,yi)] = Cell([NE, SW])
+                else
+                    cells[(xi,yi)] = Cell([NW, SE])
+                end
+            else
+                cells[(xi,yi)] = Cell([edge_LUT[case]])
             end
         end
     end
@@ -91,29 +132,12 @@ function get_level_cells(z, h::Number)
     return cells
 end
 
-
 # Some constants used by trace_contour
 
-const lt, rt, up, dn = int8(1), int8(2), int8(3), int8(4)
-const ccw, cw = int8(1), int8(2)
+const fwd, rev = uint8(0), uint8(1)
 
-# Each row in the constants refer to a marching squares case,
-# while each column correspond to a search direction.
-# The exit_face LUT finds the edge where the contour leaves
-# The dir_r/c constants points to the location of the next cell.
-# col 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19
-const dir_y = int8(
-    [-1 +0 +0 +1 +0 +1 +1 +0 -1 +0 +0 +0 -1 +0 +0 -1 +1 +0 +0;
-     +0 -1 +0 +0 +0 -1 +0 +1 +1 +0 +1 +0 +0 -1 +0 +0 +0 +1 -1]')
-const dir_x = int8(
-    [+0 +1 +1 +0 +0 +0 +0 -1 +0 +0 +1 -1 +0 -1 +0 +0 +0 -1 -1;
-     -1 +0 -1 +1 +0 +0 -1 +0 +0 +0 +0 +1 +1 +0 +0 -1 -1 +0 +0]')
-const exit_face = int8(
-    [dn rt rt up up up up lt dn dn rt lt dn lt lt dn up lt lt;
-     lt dn lt rt rt dn lt up up up up rt rt dn dn lt lt up dn]')
-
-function add_vertex!{T}(curve::Curve2{T}, pos::(T, T), dir::Int8)
-    if dir == ccw
+function add_vertex!{T}(curve::Curve2{T}, pos::(T, T), dir::Uint8)
+    if dir == fwd
         push!(curve.vertices, Vector2{T}(pos...))
     else
         unshift!(curve.vertices, Vector2{T}(pos...))
@@ -123,51 +147,60 @@ end
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate{T<:FloatingPoint}(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::Int8)
-    if edge == lt
+function interpolate{T<:FloatingPoint}(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::Uint8)
+    if edge == W
         y_interp = y[yi] + (y[yi+1] - y[yi])*(h - z[xi,yi])/(z[xi,yi+1] - z[xi,yi])
         x_interp = x[xi]
-    elseif edge == rt
+    elseif edge == E
         y_interp = y[yi] + (y[yi+1] - y[yi])*(h - z[xi+1,yi])/(z[xi+1,yi+1] - z[xi+1,yi])
         x_interp = x[xi + 1]
-    elseif edge == up
+    elseif edge == N
         y_interp = y[yi + 1]
         x_interp = x[xi] + (x[xi+1] - x[xi])*(h - z[xi,yi+1])/(z[xi+1,yi+1] - z[xi,yi+1])
-    elseif edge == dn
+    elseif edge == S
         y_interp = y[yi]
         x_interp = x[xi] + (x[xi+1] - x[xi])*(h - z[xi,yi])/(z[xi+1,yi] - z[xi,yi])
     end
 
     return x_interp, y_interp
-
 end
 
-# Given a starting cell and a search direction, keep adding
-# contour crossing until we close the contour or hit a boundary
-function chase(x, y, z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, dir::Int8, curve::Curve2)
-    case = int8(0)
-    while (xi,yi) != (xi_0,yi_0) && 0 < yi < yi_max && 0 < xi < xi_max
-        case = cells[(xi,yi)]
-        add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_face[case,dir]), dir)
-        if case == 16
-            cells[(xi,yi)] = 4
-        elseif case == 17
-            cells[(xi,yi)] = 13
-        elseif case == 18
-            cells[(xi,yi)] = 2
-        elseif case == 19
-            cells[(xi,yi)] = 11
-        else
+# Given a cell and a starting edge, we follow the contour line until we either
+# hit the boundary of the input data, or we form a closed contour.
+function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, dir)
+
+    xi, yi = xi_start, yi_start
+    while true
+        
+        cell = cells[(xi,yi)]
+        exit_edge = get_next_edge!(cell, entry_edge)
+        if length(cell.crossings) == 0
             delete!(cells, (xi,yi))
         end
-    (xi,yi) = (xi + dir_x[case,dir], yi + dir_y[case,dir])
+
+        add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
+
+        if exit_edge == N
+            yi += 1
+            entry_edge = S
+        elseif exit_edge == S
+            yi -= 1
+            entry_edge = N
+        elseif exit_edge == E
+            xi += 1
+            entry_edge = W
+        elseif exit_edge == W
+            xi -= 1
+            entry_edge = E
+        end
+        !((xi,yi) != (xi_start,yi_start) && 0 < yi < yi_max && 0 < xi < xi_max) && break
+    end
+
+    return xi, yi
 end
 
-return (xi,yi), case
-end
 
-
-function trace_contour(x, y, z, h::Number, cells::Dict{(Int,Int),Int8})
+function trace_contour(x, y, z, h::Number, cells::Dict{(Int,Int),Cell})
 
     contours = ContourLevel(h)
 
@@ -182,48 +215,59 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Int,Int),Int8})
     (xi_max, yi_max) = size(z)
 
     # When tracing out contours, this algorithm picks an arbitrary
-    # starting cell, then first follows the contour in the conouter
-    # clockwise direction until it either ends up where it started
-    # or at one of the boundaries.  It then tries to trace the contour
-    # in the opposite direction.
+    # starting cell, then first follows the contour in one direction
+    # until it either ends up where it started # or at one of the boundaries.  
+    # It then tries to trace the contour in the opposite direction.
 
     while length(cells) > 0
-        case::Int8
-        case0::Int8
-
         contour = Curve2(Float64)
 
         # Pick initial box
-        (xi_0, yi_0), case0 = first(cells)
+        (xi_0, yi_0), cell = first(cells)
         (xi,yi) = (xi_0,yi_0)
-        case = case0
+
+        # Pick a starting edge
+        crossing = first(cell.crossings)
+        starting_edge = uint8(0)
+        for edge in [N, S, E, W]
+            if edge & crossing != 0
+                starting_edge = edge
+                break
+            end
+        end
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, exit_face[case,cw]), cw)
-        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, exit_face[case,ccw]), ccw)
-        (xi,yi) = (xi_0 + dir_x[case,ccw], yi_0 + dir_y[case,ccw])
-        if case == 16
-            cells[(xi_0,yi_0)] = 4
-        elseif case == 17
-            cells[(xi_0,yi_0)] = 13
-        elseif case == 18
-            cells[(xi_0,yi_0)] = 2
-        elseif case == 19
-            cells[(xi_0,yi_0)] = 11
-        else
-            delete!(cells, (xi_0,yi_0))
+        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, starting_edge), fwd)
+
+        # Start trace in forward direction
+        (xi_end, yi_end) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, fwd)
+        
+        if (xi_end, yi_end) == (xi_0, yi_0)
+            push!(contours.lines, contour)
+            continue
         end
-
-        # Start trace in CCW direction
-        (xi,yi), case = chase(x, y, z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, ccw, contour)
-
-        # Add the contour exit location for cell (r0,c0)
-        if (xi,yi) != (xi_0,yi_0)
-            (xi,yi) = (xi_0 + dir_x[case0,cw], yi_0 + dir_y[case0,cw])
+        
+        if starting_edge == N
+            yi = yi_0 + 1
+            starting_edge = S
+        elseif starting_edge == S
+            yi = yi_0 - 1
+            starting_edge = N
+        elseif starting_edge == E
+            xi = xi_0 + 1
+            starting_edge = W
+        elseif starting_edge == W
+            xi = xi_0 - 1
+            starting_edge = E
         end
-
-        # Start trace in CW direction
-        chase(x, y, z, h, cells, xi, yi, xi_0, yi_0, xi_max, yi_max, cw, contour)
+        
+        if !(0 < yi < yi_max && 0 < xi < xi_max)
+            push!(contours.lines, contour)
+            continue
+        end
+        
+        # Start trace in reverse direction
+        (xi, yi) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, rev)
         push!(contours.lines, contour)
     end
 
