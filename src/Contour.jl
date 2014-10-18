@@ -170,8 +170,6 @@ end
 function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, dir)
 
     xi, yi = xi_start, yi_start
-    starting_edge = entry_edge
-
     while true
         
         cell = cells[(xi,yi)]
@@ -195,12 +193,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
             xi -= 1
             entry_edge = E
         end
-
-        # Break if the contour reaches one of the boundaries
-        !(0 < yi < yi_max && 0 < xi < xi_max) && break
-        
-        # Break if the contour closes itself
-        ((xi, yi) == (xi_start, yi_start)) && (entry_edge == starting_edge) && break
+        !((xi,yi) != (xi_start,yi_start) && 0 < yi < yi_max && 0 < xi < xi_max) && break
     end
 
     return xi, yi

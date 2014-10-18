@@ -139,3 +139,19 @@ for line in contourlevels.lines
     ys .== [v[2] for v in line.vertices]
 end
 
+# Test that closed contours are identified correctly 
+# when ambiguous cells are involved
+
+Z = float([1 1 1 1 1 1
+           1 0 0 1 1 1
+           1 0 0 1 1 1
+           1 1 1 0 0 1
+           1 1 1 0 0 1
+           1 1 1 1 1 1])
+
+X = Y = [0:0.2:1]
+h = 0.75
+contourlevels = Contour.contour(X,Y,Z,h)
+
+# There should be only one closed contour
+@test length(contourlevels.lines) == 1
