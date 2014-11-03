@@ -22,12 +22,15 @@ function contour(x, y, z, level::Number)
 end
 contours(x,y,z,levels) = [contour(x,y,z,l) for l in levels]
 function contours(x,y,z,Nlevels::Integer)
-    zmin,zmax = extrema(z)
-    dz = (zmax-zmin) / (Nlevels+1)
-    levels = range(zmin+dz,dz,Nlevels)
-    contours(x,y,z,levels)
+    contours(x,y,z,contourlevels(z,Nlevels))
 end
 contours(x,y,z) = contours(x,y,z,10)
+
+function contourlevels(z,n)
+    zmin,zmax = extrema(z)
+    dz = (zmax-zmin) / (n+1)
+    range(zmin+dz,dz,n)
+end
 
 function coordinates(c::Curve2)
     N = length(c.vertices)
