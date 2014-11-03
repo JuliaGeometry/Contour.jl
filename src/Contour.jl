@@ -66,6 +66,9 @@ const SN, SE, SW = S|N, S|E, S|W
 const EN, ES, EW = E|N, E|S, E|W
 const WN, WS, WE = W|N, W|S, W|E
 
+const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing", 
+                "W", "NW", "SW", "Invalid crossing", "WE"]
+
 # The way a contour crossing goes through a cell is labeled
 # by combining compass directions (e.g. a NW crossing connects
 # the N edge and W edges of the cell).  The Cell type records
@@ -170,8 +173,14 @@ end
 function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, dir)
 
     xi, yi = xi_start, yi_start
+
+    # When the contour loops back to the starting cell, it is possible
+    # for it to not intersect with itself.  This happens if the starting
+    # cell contains a saddle-point. So a loop is only closed if the 
+    # contour returns to the starting edge of the starting cell
+    loopback_edge = entry_edge
+
     while true
-        
         cell = cells[(xi,yi)]
         exit_edge = get_next_edge!(cell, entry_edge)
         if length(cell.crossings) == 0
@@ -193,7 +202,8 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
             xi -= 1
             entry_edge = E
         end
-        !((xi,yi) != (xi_start,yi_start) && 0 < yi < yi_max && 0 < xi < xi_max) && break
+        !((xi,yi,entry_edge) != (xi_start,yi_start, loopback_edge) && 
+           0 < yi < yi_max && 0 < xi < xi_max) && break
     end
 
     return xi, yi
