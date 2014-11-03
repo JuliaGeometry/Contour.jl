@@ -109,8 +109,8 @@ function get_level_cells(z, h::Number)
                 continue
             end
 
-            # Process ambigous cells (case 5 and 10) using
-            # a bilinear interplotation of the cell-center value.
+            # Process ambiguous cells (case 5 and 10) using
+            # a bilinear interpolation of the cell-center value.
             if case == 5
                 if 0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) >= h
                     cells[(xi,yi)] = Cell([NW, SE])
