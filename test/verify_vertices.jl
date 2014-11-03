@@ -155,3 +155,7 @@ contourlevels = Contour.contour(X,Y,Z,h)
 
 # There should be only one closed contour
 @test length(contourlevels.lines) == 1
+
+# Test contour location on a realistic dataset
+include("testdata.jl")
+Contour.contours(x,y,z)
