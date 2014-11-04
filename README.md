@@ -1,6 +1,7 @@
 # Contour
 
 [![Build Status](https://travis-ci.org/tlycken/Contour.jl.svg?branch=master)](https://travis-ci.org/tlycken/Contour.jl)
+[![PkgEval Status](http://pkg.julialang.org/badges/Contour_release.svg)](http://pkg.julialang.org/?pkg=Contour&ver=release)
 [![Coverage Status](https://img.shields.io/coveralls/tlycken/Contour.jl.svg?branch=master)](https://coveralls.io/r/tlycken/Contour.jl)
 
 A generic library for tracing contour curves on a scalar 2D field.
