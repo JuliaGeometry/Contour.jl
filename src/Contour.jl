@@ -226,7 +226,7 @@ end
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate(x, y, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
+function interpolate(x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
     if edge == W
         y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
         x_interp = x[xi]
@@ -243,6 +243,30 @@ function interpolate(x, y, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, ed
 
     return x_interp, y_interp
 end
+
+
+function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
+    if edge == W
+        Δ = [y[xi,  yi+1] - y[xi,  yi  ], x[xi,  yi+1] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi,  yi+1] - z[xi,  yi  ])
+        y_interp = y[xi,yi] + Δ[1]
+        x_interp = x[xi,yi] + Δ[2]
+    elseif edge == E
+        Δ = [y[xi+1,yi+1] - y[xi+1,yi  ], x[xi+1,yi+1] - x[xi+1,yi  ]].*(h - z[xi+1,yi  ])/(z[xi+1,yi+1] - z[xi+1,yi  ])
+        y_interp = y[xi+1,yi] + Δ[1]
+        x_interp = x[xi+1,yi] + Δ[2]
+    elseif edge == N
+        Δ = [y[xi+1,yi+1] - y[xi,  yi+1], x[xi+1,yi+1] - x[xi,  yi+1]].*(h - z[xi,  yi+1])/(z[xi+1,yi+1] - z[xi,  yi+1])
+        y_interp = y[xi,yi+1] + Δ[1]
+        x_interp = x[xi,yi+1] + Δ[2]
+    elseif edge == S
+        Δ = [y[xi+1,yi  ] - y[xi,  yi  ], x[xi+1,yi  ] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi+1,yi  ] - z[xi,  yi  ])
+        y_interp = y[xi+1,yi] + Δ[1]
+        x_interp = x[xi+1,yi] + Δ[2]
+    end
+
+    return x_interp, y_interp
+end
+
 
 # Given a cell and a starting edge, we follow the contour line until we either
 # hit the boundary of the input data, or we form a closed contour.
