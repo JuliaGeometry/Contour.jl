@@ -260,8 +260,8 @@ function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatr
         x_interp = x[xi,yi+1] + Δ[2]
     elseif edge == S
         Δ = [y[xi+1,yi  ] - y[xi,  yi  ], x[xi+1,yi  ] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi+1,yi  ] - z[xi,  yi  ])
-        y_interp = y[xi+1,yi] + Δ[1]
-        x_interp = x[xi+1,yi] + Δ[2]
+        y_interp = y[xi,yi] + Δ[1]
+        x_interp = x[xi,yi] + Δ[2]
     end
 
     return x_interp, y_interp
