@@ -1,6 +1,6 @@
 module Contour
 
-using ImmutableArrays
+using Compat, ImmutableArrays
 
 export ContourLevel, Curve2, contour, contours, coordinates
 
@@ -14,7 +14,7 @@ type ContourLevel
     lines::Vector{Curve2{Float64}}
 end
 ContourLevel(h::Float64) = ContourLevel(h, Curve2{Float64}[])
-ContourLevel(h::Real) = ContourLevel(float64(h))
+ContourLevel(h::Real) = ContourLevel(@compat Float64(h))
 
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
@@ -63,7 +63,7 @@ end
 # through the N edge will have the cell type: 0b0111
 # Note that there are two cases where there are two
 # lines crossing through the same cell: 0b0101, 0b1010.
-const N, S, E, W = uint8(1), uint8(2), uint8(4), uint8(8)
+const N, S, E, W = (@compat UInt8(1)), (@compat UInt8(2)), (@compat UInt8(4)), (@compat UInt8(8))
 const NS, NE, NW = N|S, N|E, N|W
 const SN, SE, SW = S|N, S|E, S|W
 const EN, ES, EW = E|N, E|S, E|W
@@ -98,7 +98,7 @@ end
 const edge_LUT = [SW, SE, EW, NE, 0, NS, NW, NW, NS, 0, NE, EW, SE, SW]
 
 function get_level_cells(z, h::Number)
-    cells = Dict{(Int,Int),Cell}()
+    cells = Dict{(@compat Tuple{Int,Int}),Cell}()
     xi_max, yi_max = size(z)
 
     local case::Int8
@@ -140,9 +140,9 @@ end
 
 # Some constants used by trace_contour
 
-const fwd, rev = uint8(0), uint8(1)
+const fwd, rev = (@compat UInt8(0)), (@compat UInt8(1))
 
-function add_vertex!{T}(curve::Curve2{T}, pos::(T, T), dir::Uint8)
+function add_vertex!{T}(curve::Curve2{T}, pos::(@compat Tuple{T,T}), dir::Uint8)
     if dir == fwd
         push!(curve.vertices, Vector2{T}(pos...))
     else
@@ -213,7 +213,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
 end
 
 
-function trace_contour(x, y, z, h::Number, cells::Dict{(Int,Int),Cell})
+function trace_contour(x, y, z, h::Number, cells::Dict{(@compat Tuple{Int,Int}),Cell})
 
     contours = ContourLevel(h)
 
@@ -241,7 +241,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Int,Int),Cell})
 
         # Pick a starting edge
         crossing = first(cell.crossings)
-        starting_edge = uint8(0)
+        starting_edge = @compat UInt8(0)
         for edge in [N, S, E, W]
             if edge & crossing != 0
                 starting_edge = edge

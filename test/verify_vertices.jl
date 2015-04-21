@@ -5,8 +5,8 @@ using ImmutableArrays
 # Shift the axes so that they do not line up with
 # integer values
 Δ = 0.01
-X = [0:Δ:4] + π
-Y = [0:Δ:3] + φ
+X = [0:Δ:4;] + π
+Y = [0:Δ:3;] + φ
 
 # TEST CASE 1
 #
@@ -110,7 +110,7 @@ end
 # Test Known Bugs
 
 # Issue #12
-x = float([1:3]); 
+x = float([1:3;]); 
 y = copy(x); 
 z = eye(3,3);
 contours(x,y,z)
@@ -120,8 +120,8 @@ contours(x,y,z)
 # f(x,y) = x^2 - y^2
 #
 Δ = 0.01
-X = [-3:Δ:3]
-Y = [-3:Δ:3]
+X = [-3:Δ:3;]
+Y = [-3:Δ:3;]
 
 Z = [(x^2 - y^2)::Float64 for x in X, y in Y]
 h = rand()*(maximum(Z) - minimum(Z)) + minimum(Z)
@@ -149,7 +149,7 @@ Z = float([1 1 1 1 1 1
            1 1 1 0 0 1
            1 1 1 1 1 1])
 
-X = Y = [0:0.2:1]
+X = Y = [0:0.2:1;]
 h = 0.75
 contourlevels = Contour.contour(X,Y,Z,h)
 
