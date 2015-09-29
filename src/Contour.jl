@@ -79,10 +79,10 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
 type Cell
-    crossings::Vector{Uint8}
+    crossings::Vector{UInt8}
 end
 
-function get_next_edge!(cell::Cell, entry_edge::Uint8)
+function get_next_edge!(cell::Cell, entry_edge::UInt8)
     for (i,edge) in enumerate(cell.crossings)
         if edge & entry_edge != 0
             next_edge = edge $ entry_edge
@@ -142,7 +142,7 @@ end
 
 const fwd, rev = (@compat UInt8(0)), (@compat UInt8(1))
 
-function add_vertex!{T}(curve::Curve2{T}, pos::(@compat Tuple{T,T}), dir::Uint8)
+function add_vertex!{T}(curve::Curve2{T}, pos::(@compat Tuple{T,T}), dir::UInt8)
     if dir == fwd
         push!(curve.vertices, Vector2{T}(pos...))
     else
@@ -153,7 +153,7 @@ end
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate{T<:FloatingPoint}(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::Uint8)
+function interpolate{T<:AbstractFloat}(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8)
     if edge == W
         y_interp = y[yi] + (y[yi+1] - y[yi])*(h - z[xi,yi])/(z[xi,yi+1] - z[xi,yi])
         x_interp = x[xi]
