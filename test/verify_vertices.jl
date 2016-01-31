@@ -1,5 +1,3 @@
-using ImmutableArrays
-
 # Setup test axes that will be shared among the tests
 
 # Shift the axes so that they do not line up with
@@ -111,7 +109,7 @@ end
 
 # Issue #12
 x = float(collect(1:3));
-y = copy(x); 
+y = copy(x);
 z = eye(3,3);
 contours(x,y,z)
 
@@ -139,7 +137,7 @@ for line in contourlevels.lines
     ys .== [v[2] for v in line.vertices]
 end
 
-# Test that closed contours are identified correctly 
+# Test that closed contours are identified correctly
 # when ambiguous cells are involved
 
 Z = float([1 1 1 1 1 1

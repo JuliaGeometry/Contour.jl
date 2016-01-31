@@ -1,20 +1,20 @@
 module Contour
 
-using Compat, ImmutableArrays
+using Compat, FixedSizeArrays
 
 export ContourLevel, Curve2, contour, contours, coordinates
 
 type Curve2{T}
-    vertices::Vector{Vector2{T}}
+    vertices::Vector{Point{2,T}}
 end
-Curve2{T}(::Type{T}) = Curve2(Vector2{T}[])
+Curve2{T}(::Type{T}) = Curve2(Point{2, T}[])
 
-type ContourLevel
-    level::Float64
-    lines::Vector{Curve2{Float64}}
+type ContourLevel{T}
+    level::T
+    lines::Vector{Curve2{T}}
 end
-ContourLevel(h::Float64) = ContourLevel(h, Curve2{Float64}[])
-ContourLevel(h::Real) = ContourLevel(@compat Float64(h))
+ContourLevel{T<:AbstractFloat}(h::T) = ContourLevel(h, Curve2{T}[])
+ContourLevel{T}(h::T) = ContourLevel(Float64(h))
 
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
@@ -32,10 +32,10 @@ function contourlevels(z,n)
     range(zmin+dz,dz,n)
 end
 
-function coordinates(c::Curve2)
+function coordinates{T}(c::Curve2{T})
     N = length(c.vertices)
-    xlist = Array(Float64,N)
-    ylist = Array(Float64,N)
+    xlist = Array(T,N)
+    ylist = Array(T,N)
 
     for (i,v) in enumerate(c.vertices)
         xlist[i] = v[1]
@@ -144,9 +144,9 @@ const fwd, rev = (@compat UInt8(0)), (@compat UInt8(1))
 
 function add_vertex!{T}(curve::Curve2{T}, pos::(@compat Tuple{T,T}), dir::UInt8)
     if dir == fwd
-        push!(curve.vertices, Vector2{T}(pos...))
+        push!(curve.vertices, Point{2,T}(pos...))
     else
-        unshift!(curve.vertices, Vector2{T}(pos...))
+        unshift!(curve.vertices, Point{2,T}(pos...))
     end
 end
 
@@ -233,7 +233,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(@compat Tuple{Int,Int}),
     # It then tries to trace the contour in the opposite direction.
 
     while length(cells) > 0
-        contour = Curve2(Float64)
+        contour = Curve2(promote_type(map(eltype, (x,y,z))...))
 
         # Pick initial box
         (xi_0, yi_0), cell = first(cells)
