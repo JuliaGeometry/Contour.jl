@@ -21,10 +21,10 @@ and `z` is a matrix arranged such that `z[xi,yi]` correspond to the location
 
 
 ```julia
-x = [-3:0.01:3]
-y = [-4:0.02:5]
+x = -3:0.01:3
+y = -4:0.02:5
 
-z = [(xi^2 + yi^2)::Float64 for xi in x, yi in y]
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y]
 ```
 
 Let's find the contour line corresponding to `z = 4.0`:
@@ -50,13 +50,13 @@ julia> c.lines
  [0.05,1.99937],[0.04,1.9996],[0.03,1.99977],[0.02,1.9999],[0.01,1.99997],
  [0.0,2.0]])
  ```
- 
+
 The format of the output data is intented to give as extensive information as possible about the contour line, in a format that can be generalized in the future, if/when something like a [`Geometry.jl` package](https://groups.google.com/forum/#!topic/julia-dev/vZpZ8NBX_z8) is created. Each contour level is represented by an instance of
 
 ```julia
-type ContourLevel
-    level::Float64
-    lines::Vector{Curve2}
+type ContourLevel{T}
+    level::T
+    lines::Vector{Curve2{T}}
 end
 ```
 
@@ -73,8 +73,8 @@ julia> plot(xs, ys) # using your favorite plotting tool
 
 `Contour.jl` makes sure that the coordinates are ordered correctly, and contours that close on themselves are given cyclically, so that e.g. `xs[1]==xs[end]` - in other words, plotting the contour does not require you to add the first point at the end manually to close the curve.
 
-We can also find the contours at multiple levels using `contours`, 
-which returns an array of `ContourLevel` types. 
+We can also find the contours at multiple levels using `contours`,
+which returns an array of `ContourLevel` types.
 
 ```julia
 julia> h = [4.0, 5.0, 6.0];
@@ -92,7 +92,7 @@ specify the number of levels we want.
 julia> N = 3;
 julia> c = contours(x, y, z, N)
 3-element Array{ContourLevel,1}:
- ContourLevel(8.5,[Curve2{Float64}([[0.62,2.84877],…,[0.62,2.84877]])]) 
+ ContourLevel(8.5,[Curve2{Float64}([[0.62,2.84877],…,[0.62,2.84877]])])
  ContourLevel(17.0,[Curve2{Float64}([[3.0,2.82841],…,[3.0,-2.82841]])])
  ContourLevel(25.5,[Curve2{Float64}([[3.0,4.06201],…,[-3.0,4.06201]])])
 ```
