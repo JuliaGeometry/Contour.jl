@@ -40,17 +40,10 @@ julia> level(c)
 4.0
 
 julia> lines(c)
-1-element Array{Curve2{Float64},1}:
- Curve2{Float64}([[0.0,2.0],[0.0,2.0],[-1.73472e-18,2.0],[-0.01,1.99997],
- [-0.02,1.9999],[-0.03,1.99977],[-0.04,1.9996],[-0.05,1.99937],[-0.06,1.9991],
- [-0.07,1.99877]  …  [0.09,1.99796],[0.08,1.99839],[0.07,1.99877],[0.06,1.9991],
- [0.05,1.99937],[0.04,1.9996],[0.03,1.99977],[0.02,1.9999],[0.01,1.99997],
- [0.0,2.0]])
+1 contour lines
 ```
 
-The format of the output data is intented to give as extensive information as possible about the contour line, in a format that can be generalized in the future, if/when something like a [`Geometry.jl` package](https://groups.google.com/forum/#!topic/julia-dev/vZpZ8NBX_z8) is created.
-
-However, it can admittedly be a little difficult to use this information in an application. For example, if we want to plot the contour line, it is much more practical to have the coordinates of the contour vertices as two lists instead of this complicated structure. No worries, just use `coordinates`:
+The format of the output data is intented to give as extensive information as possible about the contour line. However, it can admittedly be a little difficult to use this information in an application. For example, if we want to plot a contour level, it is much more practical to have the coordinates of the contour vertices as two lists instead of this complicated structure. No worries, just use `coordinates`:
 
 ```julia
 for l in lines(c) # each contour level can be represented by multiple lines
@@ -67,10 +60,7 @@ which returns an array of `ContourLevel` types.
 ```julia
 julia> h = [4.0, 5.0, 6.0];
 julia> c = contours(x, y, z, h)
-3-element Array{ContourLevel,1}:
- ContourLevel(4.0,[Curve2{Float64}([[0.0,2.0],…,[0.0,2.0]])])
- ContourLevel(5.0,[Curve2{Float64}([[0.28,-2.21846], …,[0.28,-2.21846]])])
- ContourLevel(6.0,[Curve2{Float64}([[-0.64,-2.36439],…,[-0.64,-2.36439]])])
+Collection of 3 levels.
 ```
 
 Instead of specifying all the levels explicitly, we can also
@@ -79,13 +69,10 @@ specify the number of levels we want.
 ```julia
 julia> N = 3;
 julia> c = contours(x, y, z, N)
-3-element Array{ContourLevel,1}:
- ContourLevel(8.5,[Curve2{Float64}([[0.62,2.84877],…,[0.62,2.84877]])])
- ContourLevel(17.0,[Curve2{Float64}([[3.0,2.82841],…,[3.0,-2.82841]])])
- ContourLevel(25.5,[Curve2{Float64}([[3.0,4.06201],…,[-3.0,4.06201]])])
+Collection of 3 levels
 ```
-Currently, `contours` will pick `N` levels that evenly spans the
-extrema of `z`.
+
+`contours` will pick `N` levels that evenly span the extrema of `z`.
 
 ## Credits
 The main authors of this package are [Darwin Darakananda](https://github.com/darwindarak/) and [Tomas Lycken](https://github.com/tlycken).
