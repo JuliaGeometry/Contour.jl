@@ -1,3 +1,5 @@
+using FixedSizeArrays, Contour, Base.Test
+
 # Setup test axes that will be shared among the tests
 
 # Shift the axes so that they do not line up with
