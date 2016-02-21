@@ -33,12 +33,12 @@ Base.writemime(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$
 
 levels(cc::ContourCollection) = cc.contours
 
-Base.push!{T}(cc::ContourCollection{T}, c::T) = (push!(cc.contours, c); c)
-Base.start(cc::ContourCollection) = start(cc.contours)
-Base.next(cc::ContourCollection, state) = next(cc.contours, state)
-Base.done(cc::ContourCollection, state) = done(cc.contours, state)
-Base.length(cc::ContourCollection) = length(cc.contours)
-Base.eltype(cc::ContourCollection) = eltype(cc.contours)
+push!{T}(cc::ContourCollection{T}, c::T) = (push!(cc.contours, c); c)
+@deprecate start(cc::ContourCollection) start(levels(cc))
+@deprecate next(cc::ContourCollection, state) next(levels(cc), state)
+@deprecate done(cc::ContourCollection, state) done(levels(cc), state)
+length(cc::ContourCollection) = length(cc.contours)
+eltype(cc::ContourCollection) = eltype(cc.contours)
 
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
