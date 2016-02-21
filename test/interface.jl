@@ -12,6 +12,22 @@ function setup()
     xs, ys, zs
 end
 
+module Current
+
+using Contour, Base.Test, ..InterfaceTests
+
+xs, ys, zs = setup()
+
+cs = @inferred contours(xs,ys,zs)
+for c in levels(cs)
+    for l in lines(c)
+        x,y = coordinates(l)
+        @assert typeof(x) == typeof(y) == Vector{Float64}
+    end
+end
+
+end # Current
+
 module Legacy
 
 using Contour, Base.Test
