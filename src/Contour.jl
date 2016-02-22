@@ -34,9 +34,12 @@ Base.writemime(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$
 levels(cc::ContourCollection) = cc.contours
 
 push!{T}(cc::ContourCollection{T}, c::T) = (push!(cc.contours, c); c)
-@deprecate start(cc::ContourCollection) start(levels(cc))
-@deprecate next(cc::ContourCollection, state) next(levels(cc), state)
-@deprecate done(cc::ContourCollection, state) done(levels(cc), state)
+function start(cc::ContourCollection)
+    Base.depwarn("Iteration over ContourCollections is deprecated, use `levels(cc)` instead", :start)
+    start(levels(cc))
+end
+next(cc::ContourCollection, state) = next(levels(cc), state)
+done(cc::ContourCollection, state) = done(levels(cc), state)
 length(cc::ContourCollection) = length(cc.contours)
 eltype(cc::ContourCollection) = eltype(cc.contours)
 
