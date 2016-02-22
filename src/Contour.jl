@@ -2,7 +2,7 @@ module Contour
 
 using Compat, FixedSizeArrays
 
-export ContourLevel, Curve2, contour, contours, coordinates
+export ContourLevel, Curve2, contour, contours, level, levels, lines, coordinates
 
 type Curve2{T}
     vertices::Vector{Point{2,T}}
@@ -16,11 +16,29 @@ end
 ContourLevel{T<:AbstractFloat}(h::T) = ContourLevel(h, Curve2{T}[])
 ContourLevel{T}(h::T) = ContourLevel(Float64(h))
 
+lines(cl::ContourLevel) = cl.lines
+level(cl::ContourLevel) = cl.level
+
+immutable ContourCollection{Tlevel<:ContourLevel}
+    contours::Vector{Tlevel}
+end
+ContourCollection() = ContourCollection(Float64)
+ContourCollection{Tlevel}(::Type{Tlevel}) = ContourCollection(ContourLevel{Tlevel}[])
+
+levels(cc::ContourCollection) = cc.contours
+
+Base.push!{T}(cc::ContourCollection{T}, c::T) = (push!(cc.contours, c); c)
+Base.start(cc::ContourCollection) = start(cc.contours)
+Base.next(cc::ContourCollection, state) = next(cc.contours, state)
+Base.done(cc::ContourCollection, state) = done(cc.contours, state)
+Base.length(cc::ContourCollection) = length(cc.contours)
+Base.eltype(cc::ContourCollection) = eltype(cc.contours)
+
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
     trace_contour(x, y, z,level,get_level_cells(z,level))
 end
-contours(x,y,z,levels) = [contour(x,y,z,l) for l in levels]
+contours(x,y,z,levels) = ContourCollection([contour(x,y,z,l) for l in levels])
 function contours(x,y,z,Nlevels::Integer)
     contours(x,y,z,contourlevels(z,Nlevels))
 end

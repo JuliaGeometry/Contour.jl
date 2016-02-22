@@ -1,3 +1,7 @@
+module VerticesTests
+
+using FixedSizeArrays, Contour, Base.Test
+
 # Setup test axes that will be shared among the tests
 
 # Shift the axes so that they do not line up with
@@ -157,3 +161,5 @@ contourlevels = Contour.contour(X,Y,Z,h)
 # Test contour location on a realistic dataset
 include("testdata.jl")
 Contour.contours(x,y,z)
+
+end
