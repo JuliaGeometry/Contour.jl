@@ -4,10 +4,14 @@ using Compat, FixedSizeArrays
 
 export ContourLevel, Curve2, contour, contours, level, levels, lines, coordinates
 
+import Base: push!, start, next, done, length, eltype
+
 type Curve2{T}
     vertices::Vector{Point{2,T}}
 end
 Curve2{T}(::Type{T}) = Curve2(Point{2, T}[])
+Base.writemime(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
+Base.writemime{TC<:Curve2}(io::IO, ::MIME"text/plain", c2s::Vector{TC}) = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
 
 type ContourLevel{T}
     level::T
@@ -15,7 +19,8 @@ type ContourLevel{T}
 end
 ContourLevel{T<:AbstractFloat}(h::T) = ContourLevel(h, Curve2{T}[])
 ContourLevel{T}(h::T) = ContourLevel(Float64(h))
-
+Base.writemime(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n  at $(level(cl)) with $(length(lines(cl))) line(s)")
+Base.writemime{CL<:ContourLevel}(io::IO, ::MIME"text/plain", cls::Vector{CL}) = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
 lines(cl::ContourLevel) = cl.lines
 level(cl::ContourLevel) = cl.level
 
@@ -24,6 +29,7 @@ immutable ContourCollection{Tlevel<:ContourLevel}
 end
 ContourCollection() = ContourCollection(Float64)
 ContourCollection{Tlevel}(::Type{Tlevel}) = ContourCollection(ContourLevel{Tlevel}[])
+Base.writemime(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$(typeof(cc))\n with $(length(levels(cc))) level(s).")
 
 levels(cc::ContourCollection) = cc.contours
 
