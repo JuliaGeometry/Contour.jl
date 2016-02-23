@@ -33,7 +33,7 @@ Base.writemime(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$
 
 levels(cc::ContourCollection) = cc.contours
 
-push!{T}(cc::ContourCollection{T}, c::T) = (push!(cc.contours, c); c)
+@deprecate push!{T}(cc::ContourCollection{T}, c::T) push!(levels(cc), c)
 function start(cc::ContourCollection)
     Base.depwarn("Iteration over ContourCollections is deprecated, use `levels(cc)` instead", :start)
     start(levels(cc))
