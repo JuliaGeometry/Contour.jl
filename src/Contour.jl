@@ -40,8 +40,8 @@ function start(cc::ContourCollection)
 end
 next(cc::ContourCollection, state) = next(levels(cc), state)
 done(cc::ContourCollection, state) = done(levels(cc), state)
-length(cc::ContourCollection) = length(cc.contours)
-eltype(cc::ContourCollection) = eltype(cc.contours)
+@deprecate length(cc::ContourCollection) length(levels(cc))
+@deprecate eltype(cc::ContourCollection) eltype(levels(cc))
 
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
