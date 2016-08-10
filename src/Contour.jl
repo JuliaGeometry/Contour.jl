@@ -33,16 +33,6 @@ ContourCollection{Tlevel}(::Type{Tlevel}) = ContourCollection(ContourLevel{Tleve
 
 levels(cc::ContourCollection) = cc.contours
 
-@deprecate push!{T}(cc::ContourCollection{T}, c::T) push!(levels(cc), c)
-function start(cc::ContourCollection)
-    Base.depwarn("Iteration over ContourCollections is deprecated, use `levels(cc)` instead", :start)
-    start(levels(cc))
-end
-next(cc::ContourCollection, state) = next(levels(cc), state)
-done(cc::ContourCollection, state) = done(levels(cc), state)
-@deprecate length(cc::ContourCollection) length(levels(cc))
-@deprecate eltype(cc::ContourCollection) eltype(levels(cc))
-
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
     trace_contour(x, y, z,level,get_level_cells(z,level))
