@@ -37,7 +37,7 @@ xs, ys, zs = setup()
 
 # v"0.0.7"
 cs = @inferred contours(xs, ys, zs)
-for c in cs
+for c in levels(cs)
     for l in c.lines
         x,y = @inferred coordinates(l)
         @assert typeof(x) == typeof(y) == Vector{Float64}
