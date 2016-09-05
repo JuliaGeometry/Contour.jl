@@ -1,14 +1,6 @@
 using Documenter, Contour
 
-makedocs(
-    format = Documenter.Formats.HTML,
-    sitename = "Contour.jl",
-    pages = [
-        "index.md",
-        "tutorial.md",
-        "reference.md"
-    ]
-)
+makedocs()
 
 deploydocs(
     repo = "github.com/tlycken/Contour.jl",
