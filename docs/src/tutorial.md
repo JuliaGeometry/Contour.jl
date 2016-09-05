@@ -38,7 +38,7 @@ both uniform and non-uniform grid spacings.  For the following examples, `x` and
 `y` are 1D sorted arrays that contain the grid coordinates, and `z` is a matrix
 arranged such that `z[xi,yi]` correspond to the location `(x[xi], y[yi])`.
 
-Let's consider the function $z(x,y) = x^2 + y^2$:
+Let's consider the function ``z(x,y) = x^2 + y^2``:
 
 ```julia
 x = -3:0.01:3
@@ -88,10 +88,10 @@ end
 ```
 
 On each level (`cl` in the snippet above) there are two pieces of information
-that can be of interest. You find the $z$-value of the isoline with the
+that can be of interest. You find the ``z``-value of the isoline with the
 [`level`](@ref) function, while [`lines`](@ref) yields an iterable collection
 of line segments (remember that there might be more than one isoline for a given
-$z$-value):
+``z``-value):
 
 ```@meta
 DocTestSetup = quote
@@ -115,7 +115,7 @@ This contour level only had one line. An isoline is represented as a sequence of
 vertices, which either starts and ends at the boundaries of the data set, or
 closes on itself, in which case the first and last points are equal.
 
-The $x$- and $y$-coordinates of an isoline are extracted using the
+The ``x``- and ``y``-coordinates of an isoline are extracted using the
 [`coordinates`](@ref) function:
 
 ```@meta
@@ -201,7 +201,7 @@ Contour.contourlevels(z, 4)
 ```
 
 If you only want a single contour level, use the [`contour`](@ref) function
-directly - its fourth parameter is the $z$-value at which to trace the isolines:
+directly - its fourth parameter is the ``z``-value at which to trace the isolines:
 
 ```jldoctest
 contour(x, y, z, 2.3)
