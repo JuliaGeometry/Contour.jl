@@ -66,6 +66,13 @@ function contour(x, y, z, level::Number)
 end
 
 """
+`contours` returns a set of isolines.
+
+You'll usually call [`levels`](@ref) on the output of `contours`.
+"""
+contours(::Any...)
+
+"""
 `contours(x,y,z,levels)` Trace the contour levels indicated by the `levels`
 argument.
 """
@@ -83,13 +90,6 @@ end
 `contours(x,y,z)` Trace 10 automatically chosen contour levels.
 """
 contours(x,y,z) = contours(x,y,z,10)
-
-"""
-`contours` returns a set of isolines.
-
-You'll usually call [`levels`](@ref) on the output of `contours`.
-"""
-contours
 
 """
 `contourlevels(z,n)` Examines the values of `z` and chooses `n` evenly spaced
