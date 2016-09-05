@@ -2,7 +2,15 @@ module Contour
 
 using Compat, FixedSizeArrays
 
-export ContourLevel, Curve2, contour, contours, level, levels, lines, coordinates
+export  
+    ContourLevel,
+    Curve2,
+    contour,
+    contours,
+    level,
+    levels,
+    lines,
+    coordinates
 
 @compat import Base: push!, start, next, done, length, eltype, show
 
@@ -21,7 +29,14 @@ ContourLevel{T<:AbstractFloat}(h::T) = ContourLevel(h, Curve2{T}[])
 ContourLevel{T}(h::T) = ContourLevel(Float64(h))
 @compat show(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n  at $(level(cl)) with $(length(lines(cl))) line(s)")
 @compat show{CL<:ContourLevel}(io::IO, ::MIME"text/plain", cls::Vector{CL}) = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
+"""
+`lines(c)` Extracts an iterable collection of isolines from a contour level.
+Use [`coordinates`](@ref) to get the coordinates of a line.
+"""
 lines(cl::ContourLevel) = cl.lines
+"""
+`level(c)` Indicates the `z`-value at which the contour level `c` was traced.
+"""
 level(cl::ContourLevel) = cl.level
 
 immutable ContourCollection{Tlevel<:ContourLevel}
@@ -31,24 +46,65 @@ ContourCollection() = ContourCollection(Float64)
 ContourCollection{Tlevel}(::Type{Tlevel}) = ContourCollection(ContourLevel{Tlevel}[])
 @compat show(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$(typeof(cc))\n with $(length(levels(cc))) level(s).")
 
+"""
+Turns the output of [`contours`](@ref) into an iterable with each of the traced
+contour levels. Each of the objects support [`level`](@ref) and
+[`coordinates`](@ref).
+"""
 levels(cc::ContourCollection) = cc.contours
 
+"""
+`contour(x, y, z, level::Number)` Trace a single contour level, indicated by the
+argument `level`.
+
+You'll usually call [`lines`](@ref) on the output of `contour`, and then iterate
+over the result.
+"""
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
     trace_contour(x, y, z,level,get_level_cells(z,level))
 end
+
+"""
+`contours` returns a set of isolines.
+
+You'll usually call [`levels`](@ref) on the output of `contours`.
+"""
+contours(::Any...) = error("This method exists only for documentation purposes")
+
+"""
+`contours(x,y,z,levels)` Trace the contour levels indicated by the `levels`
+argument.
+"""
 contours(x,y,z,levels) = ContourCollection([contour(x,y,z,l) for l in levels])
+
+"""
+`contours(x,y,z,Nlevels::Integer)` Trace `Nlevels` contour levels at heights
+chosen by the library (using the  [`contourlevels`](@ref) function).
+"""
 function contours(x,y,z,Nlevels::Integer)
     contours(x,y,z,contourlevels(z,Nlevels))
 end
+
+"""
+`contours(x,y,z)` Trace 10 automatically chosen contour levels.
+"""
 contours(x,y,z) = contours(x,y,z,10)
 
+"""
+`contourlevels(z,n)` Examines the values of `z` and chooses `n` evenly spaced
+levels to trace.
+"""
 function contourlevels(z,n)
     zmin,zmax = extrema(z)
     dz = (zmax-zmin) / (n+1)
     range(zmin+dz,dz,n)
 end
 
+"""
+`coordinates(c)` Returns the coordinates of the vertices of the contour line as
+a tuple of lists.
+"""
 function coordinates{T}(c::Curve2{T})
     N = length(c.vertices)
     xlist = Array(T,N)
