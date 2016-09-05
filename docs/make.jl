@@ -9,3 +9,8 @@ makedocs(
         "reference.md"
     ]
 )
+
+deploydocs(
+    repo = "github.com/tlycken/Contour.jl",
+    julia = "0.5"
+)
