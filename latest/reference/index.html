@@ -145,42 +145,42 @@
 <strong><code>Contour.contour</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>contour(x, y, z, level::Number)</code> Trace a single contour level, indicated by the argument <code>level</code>.</p>
 <p>You'll usually call <a href="./#Contour.lines"><code>lines</code></a> on the output of <code>contour</code>, and then iterate over the result.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L56-L62' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L56-L62' class='documenter-source'>source</a><br></p>
 <p><a id='Contour.contours' href='#Contour.contours'>#</a>
 <strong><code>Contour.contours</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>contours</code> returns a set of isolines.</p>
 <p>You'll usually call <a href="./#Contour.levels"><code>levels</code></a> on the output of <code>contours</code>.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L68-L72' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L68-L72' class='documenter-source'>source</a><br></p>
 <p><code>contours(x,y,z,levels)</code> Trace the contour levels indicated by the <code>levels</code> argument.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L75-L78' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L75-L78' class='documenter-source'>source</a><br></p>
 <p><code>contours(x,y,z,Nlevels::Integer)</code> Trace <code>Nlevels</code> contour levels at heights chosen by the library (using the  <a href="./#Contour.contourlevels"><code>contourlevels</code></a> function).</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L81-L84' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L81-L84' class='documenter-source'>source</a><br></p>
 <p><code>contours(x,y,z)</code> Trace 10 automatically chosen contour levels.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L89-L91' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L89-L91' class='documenter-source'>source</a><br></p>
 <p><a id='Accessors-1'></a></p>
 <h1 id="accessors">Accessors</h1>
 <p><a id='Contour.level' href='#Contour.level'>#</a>
 <strong><code>Contour.level</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>level(c)</code> Indicates the <code>z</code>-value at which the contour level <code>c</code> was traced.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L37-L39' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L37-L39' class='documenter-source'>source</a><br></p>
 <p><a id='Contour.levels' href='#Contour.levels'>#</a>
 <strong><code>Contour.levels</code></strong> &mdash; <em>Function</em>.</p>
 <p>Turns the output of <a href="./#Contour.contours"><code>contours</code></a> into an iterable with each of the traced contour levels. Each of the objects support <a href="./#Contour.level"><code>level</code></a> and <a href="./#Contour.coordinates"><code>coordinates</code></a>.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L49-L53' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L49-L53' class='documenter-source'>source</a><br></p>
 <p><a id='Contour.lines' href='#Contour.lines'>#</a>
 <strong><code>Contour.lines</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>lines(c)</code> Extracts an iterable collection of isolines from a contour level. Use <a href="./#Contour.coordinates"><code>coordinates</code></a> to get the coordinates of a line.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L32-L35' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L32-L35' class='documenter-source'>source</a><br></p>
 <p><a id='Contour.coordinates' href='#Contour.coordinates'>#</a>
 <strong><code>Contour.coordinates</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>coordinates(c)</code> Returns the coordinates of the vertices of the contour line as a tuple of lists.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L104-L107' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L104-L107' class='documenter-source'>source</a><br></p>
 <p><a id='Utilities-1'></a></p>
 <h1 id="utilities">Utilities</h1>
 <p><a id='Contour.contourlevels' href='#Contour.contourlevels'>#</a>
 <strong><code>Contour.contourlevels</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>contourlevels(z,n)</code> Examines the values of <code>z</code> and chooses <code>n</code> evenly spaced levels to trace.</p>
-<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/380eae6882037456b8ff831718a53083429aca59/src/Contour.jl#L94-L97' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/tlycken/Contour.jl/tree/7bf83f3ce5a8e94691f63e70a3f4131007b23296/src/Contour.jl#L94-L97' class='documenter-source'>source</a><br></p>
               
             </div>
           </div>
