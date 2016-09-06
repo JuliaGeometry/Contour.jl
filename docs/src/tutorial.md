@@ -4,21 +4,18 @@
 
 ```@meta
 CurrentModule = Contour
-DocTestSetup = quote
-    using Contour
-    x = -3:0.01:3
-    y = -4:0.02:5
-    z = [Float64((xi^2 + yi^2)) for xi in x, yi in y]
-
-    plot(x,y,z) = nothing
-end
 ```
 
 The most common use case for this package is plotting iso lines. Here's a
 complete example that lets you do that, while showing off all of the most
 important features of the package:
 
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
+plot(args...;kwargs...) = nothing # hide
 for cl in levels(contours(x,y,z))
     lvl = level(cl) # the z-value of this contour level
     for line in lines(cl)
@@ -26,9 +23,6 @@ for cl in levels(contours(x,y,z))
         plot(xs, ys, color=lvl) # pseuod-code; use whatever plotting package you prefer
     end
 end
-
-# output
-
 ```
 
 ## Preface: some test data...
@@ -45,6 +39,7 @@ x = -3:0.01:3
 y = -4:0.02:5
 
 z = [Float64((xi^2 + yi^2)) for xi in x, yi in y]
+nothing # hide
 ```
 
 `x` and `y` don't have to be evenly spaced - they can just as well be (sorted)
@@ -54,37 +49,30 @@ arrays of coordinate values.
 
 Usually, you'll start by calling [`contours`](@ref):
 
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
 c = contours(x,y,z)
-
-# output
-Contour.ContourCollection{Contour.ContourLevel{Float64}}
- with 10 level(s).
+nothing # hide
 ```
 
 The package is designed so that you shouldn't have to worry about the types of
 the outputs - instead, there are functions that let you extract the data you
 need. So, instead of simply returning a `Vector{ContourLevel}`, we return a
 special object which supports the [`levels`](@ref) function. `levels` in turn
-returns a collection of `ContourLevel`s which you can iterate over:
+returns an iterable, where each item represents a contour level:
 
-```@meta
-DocTestSetup = quote
-    using Contour
-    x = -3:0.01:3
-    y = -4:0.02:5
-    z = [Float64((xi^2 + yi^2)) for xi in x, yi in y]
-    c = contours(x,y,z)
-end
-```
-
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
+c = contours(x,y,z) # hide
 for cl in levels(c)
     # do something
 end
-
-# output
-
 ```
 
 On each level (`cl` in the snippet above) there are two pieces of information
@@ -93,22 +81,16 @@ that can be of interest. You find the ``z``-value of the isoline with the
 of line segments (remember that there might be more than one isoline for a given
 ``z``-value):
 
-```@meta
-DocTestSetup = quote
-    using Contour
-    x = -3:0.01:3
-    y = -4:0.02:5
-    z = [Float64((xi^2 + yi^2)) for xi in x, yi in y]
-    c = contours(x,y,z)
-    cl = first(levels(c))
-end
-```
-
-```jldoctest
-level(cl), length(lines(cl))
-
-# output
-(3.090909090909091,1)
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
+c = contours(x,y,z) # hide
+cl = first(levels(c)) # hide
+level(cl) # the z-value of the current isoline collection
+lines(cl) # an iterable collection of isolines
+nothing # hide
 ```
 
 This contour level only had one line. An isoline is represented as a sequence of
@@ -118,40 +100,26 @@ closes on itself, in which case the first and last points are equal.
 The ``x``- and ``y``-coordinates of an isoline are extracted using the
 [`coordinates`](@ref) function:
 
-```@meta
-DocTestSetup = quote
-    using Contour
-    x = -3:0.01:3
-    y = -4:0.02:5
-    z = [Float64((xi^2 + yi^2)) for xi in x, yi in y]
-    c = contours(x,y,z)
-    cl = first(levels(c))
-    l = first(lines(cl))
-end
-```
-
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
+c = contours(x,y,z) # hide
+cl = first(levels(c)) # hide
 l = first(lines(cl))
 xs, ys = coordinates(l)
-
-typeof(xs)
-
-# output
-Array{Float64,1}
+nothing # hide
 ```
 
 Now we understand all the parts of the plotting example at the top:
 
-```@meta
-DocTestSetup = quote
-    using Contour
-    x = -3:0.01:3
-    y = -4:0.02:5
-    z = [Float64((xi^2 + yi^2)) for xi in x, yi in y]
-end
-```
-
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
+plot(args...; kwargs...) = nothing # hide
 for cl in levels(contours(x,y,z))
     lvl = level(cl) # the z-value of this contour level
     for line in lines(cl)
@@ -159,9 +127,6 @@ for cl in levels(contours(x,y,z))
         plot(xs, ys, color=lvl) # pseuod-code; use whatever plotting package you prefer
     end
 end
-
-# output
-
 ```
 
 ## Affecting the choice of contour levels
@@ -170,43 +135,48 @@ There are several ways to affect the choice of contour levels.
 
 First, you can specify them manually:
 
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
 contours(x, y, z, [2,3])
-
-# output
-Contour.ContourCollection{Contour.ContourLevel{Float64}}
- with 2 level(s).
+nothing # hide
 ```
 
 You can also just specify the number of levels you want, and let the package
 choose them:
 
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
 contours(x, y, z, 2)
-
-# output
-Contour.ContourCollection{Contour.ContourLevel{Float64}}
- with 2 level(s).
+nothing # hide
 ```
 
 The package uses [`Contour.contourlevels`](@ref) to choose the levels, so it's
 entirely possible to investigate what levels would be traced without doing any
 plotting:
 
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
 Contour.contourlevels(z, 4)
-
-# output
-6.8:6.8:27.2
+nothing # hide
 ```
 
 If you only want a single contour level, use the [`contour`](@ref) function
 directly - its fourth parameter is the ``z``-value at which to trace the isolines:
 
-```jldoctest
+```@example
+using Contour # hide
+x = -3:0.01:3 # hide
+y = -4:0.02:5 # hide
+z = [Float64((xi^2 + yi^2)) for xi in x, yi in y] # hide
 contour(x, y, z, 2.3)
-
-# output
-Contour.ContourLevel{Float64}
-  at 2.3 with 1 line(s)
+nothing # hide
 ```
