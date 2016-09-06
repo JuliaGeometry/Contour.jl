@@ -20,6 +20,7 @@ markdown_extensions:
 docs_dir: 'build'
 
 pages:
-  - Home: index.md
-  - Tutorial: tutorial.md
-  - Reference: reference.md
+  - Contour.jl:
+    - index.md
+    - tutorial.md
+    - reference.md

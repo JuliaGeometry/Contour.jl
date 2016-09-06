@@ -4,6 +4,3 @@ Contour.jl uses the [marching squares algorithm](http://en.wikipedia.org/wiki/Ma
 to find [isolines](https://en.wikipedia.org/wiki/Contour_line) of a discrete
 data set representing a function ``z = f(x, y)``.
 
-[Tutorial](@ref)
-
-[Reference](@ref)
