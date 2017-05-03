@@ -9,9 +9,9 @@ CI Status:
 [![Coverage Status](https://img.shields.io/coveralls/tlycken/Contour.jl.svg?branch=master)](https://coveralls.io/r/tlycken/Contour.jl)
 
 PkgEvaluator Status:  
-[![Contour](http://pkg.julialang.org/badges/Contour_0.3.svg)](http://pkg.julialang.org/?pkg=Contour&ver=0.3)
-[![Contour](http://pkg.julialang.org/badges/Contour_0.4.svg)](http://pkg.julialang.org/?pkg=Contour&ver=0.4)
 [![Contour](http://pkg.julialang.org/badges/Contour_0.5.svg)](http://pkg.julialang.org/?pkg=Contour&ver=0.5)
+[![Contour](http://pkg.julialang.org/badges/Contour_0.6.svg)](http://pkg.julialang.org/?pkg=Contour&ver=0.6)
+
 
 A generic implementation of the [marching squares](https://en.wikipedia.org/wiki/Marching_squares) algorithm for tracing contour curves on a scalar 2D field.
 
