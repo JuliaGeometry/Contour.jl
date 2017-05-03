@@ -1,6 +1,6 @@
 module VerticesTests
 
-using FixedSizeArrays, Contour, Base.Test
+using Contour, Base.Test
 
 # Setup test axes that will be shared among the tests
 
@@ -21,7 +21,7 @@ contourlevels = Contour.contour(X,Y,Z, h)
 for line in contourlevels.lines
     # Contour vertices lie on a circle around the origin
     for v in line.vertices
-        @test_approx_eq_eps v[1]^2 + v[2]^2 h 0.1Δ
+        @test isapprox(v[1]^2 + v[2]^2, h, atol=0.1Δ)
     end
 
     # coordinates() returns the correct values
@@ -41,7 +41,7 @@ Z = Float64[(x-x0)^2+(y-y0)^2 for x in X, y in Y]
 contourlevels = Contour.contour(X, Y, Z, h)
 for line in contourlevels.lines
     for v in line.vertices
-        @test_approx_eq_eps ((v[1]-x0)^2 + (v[2]-y0)^2) h 0.01Δ
+        @test isapprox((v[1]-x0)^2 + (v[2]-y0)^2, h, atol=0.01Δ)
     end
 end
 
@@ -62,7 +62,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 for line in lines
     @test length(line.vertices) == 2
     Δ = line.vertices[2] - line.vertices[1]
-    @test_approx_eq Δ[2]/Δ[1] -1.0
+    @test Δ[2]/Δ[1] ≈ -1.0
 end
 
 # Case 5: z_center < h
@@ -77,7 +77,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 for line in lines
     @test length(line.vertices) == 2
     Δ = line.vertices[2] - line.vertices[1]
-    @test_approx_eq Δ[2]/Δ[1] 1.0
+    @test Δ[2]/Δ[1] ≈ 1.0
 end
 
 # Case 10: z_center > h
@@ -91,7 +91,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 for line in lines
     @test length(line.vertices) == 2
     Δ = line.vertices[2] - line.vertices[1]
-    @test_approx_eq Δ[2]/Δ[1] 1.0
+    @test Δ[2]/Δ[1] ≈ 1.0
 end
 
 # Case 10: z_center < h
@@ -106,7 +106,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 for line in lines
     @test length(line.vertices) == 2
     Δ = line.vertices[2] - line.vertices[1]
-    @test_approx_eq Δ[2]/Δ[1] -1.0
+    @test Δ[2]/Δ[1] ≈ -1.0
 end
 
 # Test Known Bugs
@@ -132,7 +132,7 @@ contourlevels = Contour.contour(X,Y,Z, h)
 for line in contourlevels.lines
     # Contour vertices lie on a circle around the origin
     for v in line.vertices
-        @test_approx_eq_eps v[1]^2 - v[2]^2 h 0.1Δ
+        @test isapprox(v[1]^2 - v[2]^2, h, atol=0.1Δ)
     end
 
     # coordinates() returns the correct values

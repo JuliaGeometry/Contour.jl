@@ -3,8 +3,8 @@ sudo: false
 os:
   - linux
 julia:
-  - 0.4
   - 0.5
+  - 0.6
 notifications:
   - email: false
 after_success:
