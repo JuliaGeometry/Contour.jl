@@ -1,8 +1,10 @@
+__precompile__()
+
 module Contour
 
-using Compat, FixedSizeArrays
+using Compat, StaticArrays
 
-export  
+export
     ContourLevel,
     Curve2,
     contour,
@@ -12,14 +14,14 @@ export
     lines,
     coordinates
 
-@compat import Base: push!, start, next, done, length, eltype, show
+import Base: push!, start, next, done, length, eltype, show
 
 type Curve2{T}
-    vertices::Vector{Point{2,T}}
+    vertices::Vector{SVector{2,T}}
 end
-Curve2{T}(::Type{T}) = Curve2(Point{2, T}[])
-@compat show(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
-@compat show{TC<:Curve2}(io::IO, ::MIME"text/plain", c2s::Vector{TC}) = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
+Curve2{T}(::Type{T}) = Curve2(SVector{2, T}[])
+show(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
+show{TC<:Curve2}(io::IO, ::MIME"text/plain", c2s::Vector{TC}) = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
 
 type ContourLevel{T}
     level::T
@@ -27,8 +29,8 @@ type ContourLevel{T}
 end
 ContourLevel{T<:AbstractFloat}(h::T) = ContourLevel(h, Curve2{T}[])
 ContourLevel{T}(h::T) = ContourLevel(Float64(h))
-@compat show(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n  at $(level(cl)) with $(length(lines(cl))) line(s)")
-@compat show{CL<:ContourLevel}(io::IO, ::MIME"text/plain", cls::Vector{CL}) = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
+show(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n  at $(level(cl)) with $(length(lines(cl))) line(s)")
+show{CL<:ContourLevel}(io::IO, ::MIME"text/plain", cls::Vector{CL}) = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
 """
 `lines(c)` Extracts an iterable collection of isolines from a contour level.
 Use [`coordinates`](@ref) to get the coordinates of a line.
@@ -44,7 +46,7 @@ immutable ContourCollection{Tlevel<:ContourLevel}
 end
 ContourCollection() = ContourCollection(Float64)
 ContourCollection{Tlevel}(::Type{Tlevel}) = ContourCollection(ContourLevel{Tlevel}[])
-@compat show(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$(typeof(cc))\n with $(length(levels(cc))) level(s).")
+show(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$(typeof(cc))\n with $(length(levels(cc))) level(s).")
 
 """
 Turns the output of [`contours`](@ref) into an iterable with each of the traced
@@ -107,8 +109,8 @@ a tuple of lists.
 """
 function coordinates{T}(c::Curve2{T})
     N = length(c.vertices)
-    xlist = Array(T,N)
-    ylist = Array(T,N)
+    xlist = Vector{T}(N)
+    ylist = Vector{T}(N)
 
     for (i,v) in enumerate(c.vertices)
         xlist[i] = v[1]
@@ -136,13 +138,13 @@ end
 # through the N edge will have the cell type: 0b0111
 # Note that there are two cases where there are two
 # lines crossing through the same cell: 0b0101, 0b1010.
-const N, S, E, W = (@compat UInt8(1)), (@compat UInt8(2)), (@compat UInt8(4)), (@compat UInt8(8))
+const N, S, E, W = (UInt8(1)), (UInt8(2)), (UInt8(4)), (UInt8(8))
 const NS, NE, NW = N|S, N|E, N|W
 const SN, SE, SW = S|N, S|E, S|W
 const EN, ES, EW = E|N, E|S, E|W
 const WN, WS, WE = W|N, W|S, W|E
 
-const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing", 
+const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
                 "W", "NW", "SW", "Invalid crossing", "WE"]
 
 # The way a contour crossing goes through a cell is labeled
@@ -158,7 +160,7 @@ end
 function get_next_edge!(cell::Cell, entry_edge::UInt8)
     for (i,edge) in enumerate(cell.crossings)
         if edge & entry_edge != 0
-            next_edge = edge $ entry_edge
+            @compat next_edge = edge ⊻ entry_edge
             deleteat!(cell.crossings, i)
 
             return next_edge
@@ -171,7 +173,7 @@ end
 const edge_LUT = [SW, SE, EW, NE, 0, NS, NW, NW, NS, 0, NE, EW, SE, SW]
 
 function get_level_cells(z, h::Number)
-    cells = Dict{(@compat Tuple{Int,Int}),Cell}()
+    cells = Dict{(Tuple{Int,Int}),Cell}()
     xi_max, yi_max = size(z)
 
     local case::Int8
@@ -213,13 +215,13 @@ end
 
 # Some constants used by trace_contour
 
-const fwd, rev = (@compat UInt8(0)), (@compat UInt8(1))
+const fwd, rev = (UInt8(0)), (UInt8(1))
 
-function add_vertex!{T}(curve::Curve2{T}, pos::(@compat Tuple{T,T}), dir::UInt8)
+function add_vertex!{T}(curve::Curve2{T}, pos::(Tuple{T,T}), dir::UInt8)
     if dir == fwd
-        push!(curve.vertices, Point{2,T}(pos...))
+        push!(curve.vertices, SVector{2,T}(pos...))
     else
-        unshift!(curve.vertices, Point{2,T}(pos...))
+        unshift!(curve.vertices, SVector{2,T}(pos...))
     end
 end
 
@@ -252,7 +254,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
 
     # When the contour loops back to the starting cell, it is possible
     # for it to not intersect with itself.  This happens if the starting
-    # cell contains a saddle-point. So a loop is only closed if the 
+    # cell contains a saddle-point. So a loop is only closed if the
     # contour returns to the starting edge of the starting cell
     loopback_edge = entry_edge
 
@@ -278,7 +280,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
             xi -= 1
             entry_edge = E
         end
-        !((xi,yi,entry_edge) != (xi_start,yi_start, loopback_edge) && 
+        !((xi,yi,entry_edge) != (xi_start,yi_start, loopback_edge) &&
            0 < yi < yi_max && 0 < xi < xi_max) && break
     end
 
@@ -286,7 +288,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
 end
 
 
-function trace_contour(x, y, z, h::Number, cells::Dict{(@compat Tuple{Int,Int}),Cell})
+function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
 
     contours = ContourLevel(h)
 
@@ -302,7 +304,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(@compat Tuple{Int,Int}),
 
     # When tracing out contours, this algorithm picks an arbitrary
     # starting cell, then first follows the contour in one direction
-    # until it either ends up where it started # or at one of the boundaries.  
+    # until it either ends up where it started # or at one of the boundaries.
     # It then tries to trace the contour in the opposite direction.
 
     while length(cells) > 0
@@ -314,7 +316,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(@compat Tuple{Int,Int}),
 
         # Pick a starting edge
         crossing = first(cell.crossings)
-        starting_edge = @compat UInt8(0)
+        starting_edge = UInt8(0)
         for edge in [N, S, E, W]
             if edge & crossing != 0
                 starting_edge = edge
@@ -327,12 +329,12 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(@compat Tuple{Int,Int}),
 
         # Start trace in forward direction
         (xi_end, yi_end) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, fwd)
-        
+
         if (xi_end, yi_end) == (xi_0, yi_0)
             push!(contours.lines, contour)
             continue
         end
-        
+
         if starting_edge == N
             yi = yi_0 + 1
             starting_edge = S
@@ -346,12 +348,12 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(@compat Tuple{Int,Int}),
             xi = xi_0 - 1
             starting_edge = E
         end
-        
+
         if !(0 < yi < yi_max && 0 < xi < xi_max)
             push!(contours.lines, contour)
             continue
         end
-        
+
         # Start trace in reverse direction
         (xi, yi) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, rev)
         push!(contours.lines, contour)
