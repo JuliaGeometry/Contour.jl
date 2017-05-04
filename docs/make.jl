@@ -1,9 +1,20 @@
 using Documenter, Contour
 
-makedocs()
+makedocs(
+    modules = [Contour],
+    format = :html,
+    sitename = "Contour.jl",
+    pages = Any[
+        "Introduction" => "index.md",
+        "Tutorial" => "tutorial.md",
+        "Reference" => "reference.md",
+    ]
+)
 
 deploydocs(
-    repo = "github.com/JuliaGeometry/Contour.jl",
+    repo = "github.com/JuliaGeometry/Contour.jl.git",
+    target = "build",
     julia = "0.6",
-    deps = Deps.pip("pygments", "mkdocs", "python-markdown-math")
+    deps = nothing,
+    make = nothing
 )
