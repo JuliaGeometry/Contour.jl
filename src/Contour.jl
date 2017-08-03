@@ -16,14 +16,14 @@ export
 
 import Base: push!, start, next, done, length, eltype, show
 
-mutable struct Curve2{T}
+struct Curve2{T}
     vertices::Vector{SVector{2,T}}
 end
 Curve2(::Type{T}) where {T} = Curve2(SVector{2,T}[])
 show(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
 show(io::IO, ::MIME"text/plain", c2s::Vector{TC}) where {TC <: Curve2} = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
 
-mutable struct ContourLevel{T}
+struct ContourLevel{T}
     level::T
     lines::Vector{Curve2{T}}
 end
@@ -153,7 +153,7 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # the type of crossing that a cell contains.  While most
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
-mutable struct Cell
+struct Cell
     crossings::Vector{UInt8}
 end
 
