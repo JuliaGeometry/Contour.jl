@@ -7,17 +7,17 @@ function setup()
 
     xs = sort!(rand(nx))
     ys = sort!(rand(ny))
-    zs = rand(nx,ny)
+    zs = rand(nx, ny)
 
     xs, ys, zs
 end
 
 xs, ys, zs = setup()
 
-cs = @inferred contours(xs,ys,zs)
+cs = @inferred contours(xs, ys, zs)
 for c in levels(cs)
     for l in lines(c)
-        x,y = coordinates(l)
+        x, y = coordinates(l)
         @assert typeof(x) == typeof(y) == Vector{Float64}
     end
 end

@@ -2,7 +2,7 @@ __precompile__()
 
 module Contour
 
-using Compat, StaticArrays
+using StaticArrays
 
 export
     ContourLevel,
@@ -16,21 +16,21 @@ export
 
 import Base: push!, start, next, done, length, eltype, show
 
-type Curve2{T}
+struct Curve2{T}
     vertices::Vector{SVector{2,T}}
 end
-Curve2{T}(::Type{T}) = Curve2(SVector{2, T}[])
+Curve2(::Type{T}) where {T} = Curve2(SVector{2,T}[])
 show(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
-show{TC<:Curve2}(io::IO, ::MIME"text/plain", c2s::Vector{TC}) = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
+show(io::IO, ::MIME"text/plain", c2s::Vector{TC}) where {TC <: Curve2} = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
 
-type ContourLevel{T}
+struct ContourLevel{T}
     level::T
     lines::Vector{Curve2{T}}
 end
-ContourLevel{T<:AbstractFloat}(h::T) = ContourLevel(h, Curve2{T}[])
-ContourLevel{T}(h::T) = ContourLevel(Float64(h))
+ContourLevel(h::T) where {T <: AbstractFloat} = ContourLevel(h, Curve2{T}[])
+ContourLevel(h::T) where {T} = ContourLevel(Float64(h))
 show(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n  at $(level(cl)) with $(length(lines(cl))) line(s)")
-show{CL<:ContourLevel}(io::IO, ::MIME"text/plain", cls::Vector{CL}) = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
+show(io::IO, ::MIME"text/plain", cls::Vector{CL}) where {CL <: ContourLevel} = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
 """
 `lines(c)` Extracts an iterable collection of isolines from a contour level.
 Use [`coordinates`](@ref) to get the coordinates of a line.
@@ -41,11 +41,11 @@ lines(cl::ContourLevel) = cl.lines
 """
 level(cl::ContourLevel) = cl.level
 
-immutable ContourCollection{Tlevel<:ContourLevel}
+struct ContourCollection{Tlevel<:ContourLevel}
     contours::Vector{Tlevel}
 end
 ContourCollection() = ContourCollection(Float64)
-ContourCollection{Tlevel}(::Type{Tlevel}) = ContourCollection(ContourLevel{Tlevel}[])
+ContourCollection(::Type{Tlevel}) where {Tlevel} = ContourCollection(ContourLevel{Tlevel}[])
 show(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$(typeof(cc))\n with $(length(levels(cc))) level(s).")
 
 """
@@ -64,7 +64,7 @@ over the result.
 """
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
-    trace_contour(x, y, z,level,get_level_cells(z,level))
+    trace_contour(x, y, z, level, get_level_cells(z, level))
 end
 
 """
@@ -78,41 +78,41 @@ contours(::Any...) = error("This method exists only for documentation purposes")
 `contours(x,y,z,levels)` Trace the contour levels indicated by the `levels`
 argument.
 """
-contours(x,y,z,levels) = ContourCollection([contour(x,y,z,l) for l in levels])
+contours(x, y, z, levels) = ContourCollection([contour(x, y, z, l) for l in levels])
 
 """
 `contours(x,y,z,Nlevels::Integer)` Trace `Nlevels` contour levels at heights
 chosen by the library (using the  [`contourlevels`](@ref) function).
 """
-function contours(x,y,z,Nlevels::Integer)
-    contours(x,y,z,contourlevels(z,Nlevels))
+function contours(x, y, z, Nlevels::Integer)
+    contours(x, y, z, contourlevels(z, Nlevels))
 end
 
 """
 `contours(x,y,z)` Trace 10 automatically chosen contour levels.
 """
-contours(x,y,z) = contours(x,y,z,10)
+contours(x, y, z) = contours(x, y, z, 10)
 
 """
 `contourlevels(z,n)` Examines the values of `z` and chooses `n` evenly spaced
 levels to trace.
 """
-function contourlevels(z,n)
-    zmin,zmax = extrema(z)
-    dz = (zmax-zmin) / (n+1)
-    range(zmin+dz,dz,n)
+function contourlevels(z, n)
+    zmin, zmax = extrema(z)
+    dz = (zmax - zmin) / (n + 1)
+    range(zmin + dz, dz, n)
 end
 
 """
 `coordinates(c)` Returns the coordinates of the vertices of the contour line as
 a tuple of lists.
 """
-function coordinates{T}(c::Curve2{T})
+function coordinates(c::Curve2{T}) where {T}
     N = length(c.vertices)
     xlist = Vector{T}(N)
     ylist = Vector{T}(N)
 
-    for (i,v) in enumerate(c.vertices)
+    for (i, v) in enumerate(c.vertices)
         xlist[i] = v[1]
         ylist[i] = v[2]
     end
@@ -153,14 +153,14 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # the type of crossing that a cell contains.  While most
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
-type Cell
+struct Cell
     crossings::Vector{UInt8}
 end
 
 function get_next_edge!(cell::Cell, entry_edge::UInt8)
-    for (i,edge) in enumerate(cell.crossings)
+    for (i, edge) in enumerate(cell.crossings)
         if edge & entry_edge != 0
-            @compat next_edge = edge ⊻ entry_edge
+            next_edge = edge ⊻ entry_edge
             deleteat!(cell.crossings, i)
 
             return next_edge
@@ -178,12 +178,12 @@ function get_level_cells(z, h::Number)
 
     local case::Int8
 
-    for xi in 1:xi_max-1
-        for yi in 1:yi_max-1
-            case = 1(z[xi,yi] > h)     |
-                   2(z[xi+1,yi] > h)   |
-                   4(z[xi+1,yi+1] > h) |
-                   8(z[xi,yi+1] > h)
+    for xi in 1:xi_max - 1
+        for yi in 1:yi_max - 1
+            case = 1(z[xi, yi] > h)     |
+                   2(z[xi + 1, yi] > h)   |
+                   4(z[xi + 1, yi + 1] > h) |
+                   8(z[xi, yi + 1] > h)
 
             # Contour does not go through these cells
             if case == 0 || case == 15
@@ -193,19 +193,19 @@ function get_level_cells(z, h::Number)
             # Process ambiguous cells (case 5 and 10) using
             # a bilinear interpolation of the cell-center value.
             if case == 5
-                if 0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) >= h
-                    cells[(xi,yi)] = Cell([NW, SE])
+                if 0.25(z[xi, yi] + z[xi, yi + 1] + z[xi + 1, yi] + z[xi + 1, yi + 1]) >= h
+                    cells[(xi, yi)] = Cell([NW, SE])
                 else
-                    cells[(xi,yi)] = Cell([NE, SW])
+                    cells[(xi, yi)] = Cell([NE, SW])
                 end
             elseif case == 10
-                if 0.25(z[xi,yi] + z[xi,yi+1] + z[xi+1,yi] + z[xi+1,yi+1]) >= h
-                    cells[(xi,yi)] = Cell([NE, SW])
+                if 0.25(z[xi, yi] + z[xi, yi + 1] + z[xi + 1, yi] + z[xi + 1, yi + 1]) >= h
+                    cells[(xi, yi)] = Cell([NE, SW])
                 else
-                    cells[(xi,yi)] = Cell([NW, SE])
+                    cells[(xi, yi)] = Cell([NW, SE])
                 end
             else
-                cells[(xi,yi)] = Cell([edge_LUT[case]])
+                cells[(xi, yi)] = Cell([edge_LUT[case]])
             end
         end
     end
@@ -217,7 +217,7 @@ end
 
 const fwd, rev = (UInt8(0)), (UInt8(1))
 
-function add_vertex!{T}(curve::Curve2{T}, pos::(Tuple{T,T}), dir::UInt8)
+function add_vertex!(curve::Curve2{T}, pos::(Tuple{T,T}), dir::UInt8) where {T}
     if dir == fwd
         push!(curve.vertices, SVector{2,T}(pos...))
     else
@@ -228,19 +228,19 @@ end
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate{T<:AbstractFloat}(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8)
+function interpolate(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
     if edge == W
-        y_interp = y[yi] + (y[yi+1] - y[yi])*(h - z[xi,yi])/(z[xi,yi+1] - z[xi,yi])
+        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
         x_interp = x[xi]
     elseif edge == E
-        y_interp = y[yi] + (y[yi+1] - y[yi])*(h - z[xi+1,yi])/(z[xi+1,yi+1] - z[xi+1,yi])
+        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi + 1, yi]) / (z[xi + 1, yi + 1] - z[xi + 1, yi])
         x_interp = x[xi + 1]
     elseif edge == N
         y_interp = y[yi + 1]
-        x_interp = x[xi] + (x[xi+1] - x[xi])*(h - z[xi,yi+1])/(z[xi+1,yi+1] - z[xi,yi+1])
+        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1])
     elseif edge == S
         y_interp = y[yi]
-        x_interp = x[xi] + (x[xi+1] - x[xi])*(h - z[xi,yi])/(z[xi+1,yi] - z[xi,yi])
+        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
     end
 
     return x_interp, y_interp
@@ -259,10 +259,10 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     loopback_edge = entry_edge
 
     while true
-        cell = cells[(xi,yi)]
+        cell = cells[(xi, yi)]
         exit_edge = get_next_edge!(cell, entry_edge)
         if length(cell.crossings) == 0
-            delete!(cells, (xi,yi))
+            delete!(cells, (xi, yi))
         end
 
         add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
@@ -280,7 +280,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
             xi -= 1
             entry_edge = E
         end
-        !((xi,yi,entry_edge) != (xi_start,yi_start, loopback_edge) &&
+        !((xi, yi, entry_edge) != (xi_start, yi_start, loopback_edge) &&
            0 < yi < yi_max && 0 < xi < xi_max) && break
     end
 
@@ -308,11 +308,11 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
     # It then tries to trace the contour in the opposite direction.
 
     while length(cells) > 0
-        contour = Curve2(promote_type(map(eltype, (x,y,z))...))
+        contour = Curve2(promote_type(map(eltype, (x, y, z))...))
 
         # Pick initial box
         (xi_0, yi_0), cell = first(cells)
-        (xi,yi) = (xi_0,yi_0)
+        (xi, yi) = (xi_0, yi_0)
 
         # Pick a starting edge
         crossing = first(cell.crossings)
