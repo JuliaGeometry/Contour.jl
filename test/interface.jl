@@ -1,6 +1,6 @@
 module InterfaceTests
 
-using Contour, Base.Test
+using Contour, Test
 
 function setup()
     nx, ny = 10, 10
