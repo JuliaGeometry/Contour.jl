@@ -1,14 +1,16 @@
 module VerticesTests
 
-using Contour, Base.Test
+using Contour, Test
+using Base.MathConstants: π, φ
+using LinearAlgebra: Diagonal
 
 # Setup test axes that will be shared among the tests
 
 # Shift the axes so that they do not line up with
 # integer values
 Δ = 0.01
-X = collect(0:Δ:4) + π
-Y = collect(0:Δ:3) + φ
+X = collect(0:Δ:4) .+ π
+Y = collect(0:Δ:3) .+ φ
 
 # TEST CASE 1
 #
@@ -61,8 +63,8 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    Δ = line.vertices[2] - line.vertices[1]
-    @test Δ[2] / Δ[1] ≈ -1.0
+    d = line.vertices[2] - line.vertices[1]
+    @test d[2] / d[1] ≈ -1.0
 end
 
 # Case 5: z_center < h
@@ -76,8 +78,8 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    Δ = line.vertices[2] - line.vertices[1]
-    @test Δ[2] / Δ[1] ≈ 1.0
+    d = line.vertices[2] - line.vertices[1]
+    @test d[2] / d[1] ≈ 1.0
 end
 
 # Case 10: z_center > h
@@ -90,8 +92,8 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    Δ = line.vertices[2] - line.vertices[1]
-    @test Δ[2] / Δ[1] ≈ 1.0
+    d = line.vertices[2] - line.vertices[1]
+    @test d[2] / d[1] ≈ 1.0
 end
 
 # Case 10: z_center < h
@@ -105,8 +107,8 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    Δ = line.vertices[2] - line.vertices[1]
-    @test Δ[2] / Δ[1] ≈ -1.0
+    d = line.vertices[2] - line.vertices[1]
+    @test d[2] / d[1] ≈ -1.0
 end
 
 # Test Known Bugs
@@ -114,7 +116,7 @@ end
 # Issue #12
 x = float(collect(1:3));
 y = copy(x);
-z = eye(3, 3);
+z = Diagonal(ones(3));
 contours(x, y, z)
 
 # Test handling of saddle points

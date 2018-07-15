@@ -100,7 +100,7 @@ levels to trace.
 function contourlevels(z, n)
     zmin, zmax = extrema(z)
     dz = (zmax - zmin) / (n + 1)
-    range(zmin + dz, dz, n)
+    range(zmin + dz; step = dz, length = n)
 end
 
 """
@@ -109,8 +109,8 @@ a tuple of lists.
 """
 function coordinates(c::Curve2{T}) where {T}
     N = length(c.vertices)
-    xlist = Vector{T}(N)
-    ylist = Vector{T}(N)
+    xlist = Vector{T}(undef, N)
+    ylist = Vector{T}(undef, N)
 
     for (i, v) in enumerate(c.vertices)
         xlist[i] = v[1]
@@ -221,14 +221,14 @@ function add_vertex!(curve::Curve2{T}, pos::(Tuple{T,T}), dir::UInt8) where {T}
     if dir == fwd
         push!(curve.vertices, SVector{2,T}(pos...))
     else
-        unshift!(curve.vertices, SVector{2,T}(pos...))
+        pushfirst!(curve.vertices, SVector{2,T}(pos...))
     end
 end
 
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate(x, y, z::Matrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
+function interpolate(x, y, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
     if edge == W
         y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
         x_interp = x[xi]
