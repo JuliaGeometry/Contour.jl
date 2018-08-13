@@ -14,7 +14,7 @@ export
     lines,
     coordinates
 
-import Base: push!, start, next, done, length, eltype, show
+import Base: push!, length, eltype, show
 
 struct Curve2{T}
     vertices::Vector{SVector{2,T}}
