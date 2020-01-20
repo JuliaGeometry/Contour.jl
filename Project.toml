@@ -5,7 +5,7 @@ uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-StaticArrays = "0.12"
+StaticArrays = "0.10,0.11,0.12"
 julia = "0.7, 1"
 
 [extras]
