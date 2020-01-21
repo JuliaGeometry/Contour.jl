@@ -2,7 +2,7 @@ using Documenter, Contour
 
 makedocs(
     modules = [Contour],
-    format = :html,
+    format = Documenter.HTML(),
     sitename = "Contour.jl",
     pages = Any[
         "Introduction" => "index.md",
@@ -13,8 +13,4 @@ makedocs(
 
 deploydocs(
     repo = "github.com/JuliaGeometry/Contour.jl.git",
-    target = "build",
-    julia = "0.6",
-    deps = nothing,
-    make = nothing
 )
