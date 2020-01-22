@@ -3,11 +3,29 @@ sudo: false
 os:
   - linux
 julia:
-  - 0.7
   - 1.0
+  - 1.3
   - nightly
 notifications:
   - email: false
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+                                               Pkg.instantiate()'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
+branches:
+  only: # Only kick off CI for master and potential merges to master from within PRs
+    - master
+    - /^release-.*$/
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+matrix:
+  allow_failures:
+    - julia: nightly
 after_success:
   - julia -e 'Pkg.add("Documenter"); Pkg.add("Coverage");'
   - julia -e 'cd(Pkg.dir("Contour")); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(process_folder())'
