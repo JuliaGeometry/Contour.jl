@@ -172,34 +172,38 @@ end
 # Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 
+function _get_case(z, h)
+    case = z[1] > h ? 0x01 : 0x00
+    z[2] > h && (case |= 0x02)
+    z[3] > h && (case |= 0x04)
+    z[4] > h && (case |= 0x08)
+    case
+end
+
 function get_level_cells(z, h::Number)
     cells = Dict{(Tuple{Int,Int}),Cell}()
     xi_max, yi_max = size(z)
 
-    local case::Int8
-
     for xi in 1:xi_max - 1
         for yi in 1:yi_max - 1
-            case = 1(z[xi, yi] > h)     |
-                   2(z[xi + 1, yi] > h)   |
-                   4(z[xi + 1, yi + 1] > h) |
-                   8(z[xi, yi + 1] > h)
+            elts = (z[xi, yi], z[xi + 1, yi], z[xi + 1, yi + 1], z[xi, yi + 1])
+            case = _get_case(elts, h)
 
             # Contour does not go through these cells
-            if case == 0 || case == 15
+            if iszero(case) || case == 0x0f
                 continue
             end
 
             # Process ambiguous cells (case 5 and 10) using
             # a bilinear interpolation of the cell-center value.
-            if case == 5
-                if 0.25(z[xi, yi] + z[xi, yi + 1] + z[xi + 1, yi] + z[xi + 1, yi + 1]) >= h
+            if case == 0x05
+                if 0.25*sum(elts) >= h
                     cells[(xi, yi)] = Cell([NW, SE])
                 else
                     cells[(xi, yi)] = Cell([NE, SW])
                 end
-            elseif case == 10
-                if 0.25(z[xi, yi] + z[xi, yi + 1] + z[xi + 1, yi] + z[xi + 1, yi + 1]) >= h
+            elseif case == 0x0a
+                if 0.25*sum(elts) >= h
                     cells[(xi, yi)] = Cell([NE, SW])
                 else
                     cells[(xi, yi)] = Cell([NW, SE])
