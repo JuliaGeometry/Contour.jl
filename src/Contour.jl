@@ -170,7 +170,7 @@ function get_next_edge!(cell::Cell, entry_edge::UInt8)
 end
 
 # Maps cell type to crossing types for non-ambiguous cells
-const edge_LUT = [SW, SE, EW, NE, 0, NS, NW, NW, NS, 0, NE, EW, SE, SW]
+const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 
 function get_level_cells(z, h::Number)
     cells = Dict{(Tuple{Int,Int}),Cell}()
