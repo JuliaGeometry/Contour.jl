@@ -111,6 +111,17 @@ for line in lines
     @test d[2] / d[1] ≈ -1.0
 end
 
+# Test curvilinear coordinates
+θ = range(0, 2π,length=100)
+R = range(1, 3, length=100)
+ζ = ComplexF64[r*exp(im*ϕ) for ϕ in θ, r in R]
+x, y, z = real(ζ), imag(ζ), abs.(ζ)
+
+h = 1 + rand()
+xs, ys = coordinates(contour(x, y, z, h).lines[1])
+
+@test all(xs.^2 + ys.^2 .≈ h^2)
+
 # Test Known Bugs
 
 # Issue #12
