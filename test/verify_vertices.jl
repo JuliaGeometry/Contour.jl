@@ -112,10 +112,10 @@ for line in lines
 end
 
 # Test curvilinear coordinates
-θ = range(0, 2π,length=100)
-R = range(1, 3, length=100)
+θ = range(0.0, 2π,length=100)
+R = range(1.0, 3.0, length=100)
 ζ = ComplexF64[r*exp(im*ϕ) for ϕ in θ, r in R]
-x, y, z = real(ζ), imag(ζ), abs.(ζ)
+x, y, z = real.(ζ), imag.(ζ), abs.(ζ)
 
 h = 1 + rand()
 xs, ys = coordinates(contour(x, y, z, h).lines[1])
