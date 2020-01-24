@@ -159,7 +159,7 @@ end
 
 function get_next_edge!(cell::Cell, entry_edge::UInt8)
     for (i, edge) in enumerate(cell.crossings)
-        if edge & entry_edge != 0
+        if !iszero(edge & entry_edge)
             next_edge = edge ⊻ entry_edge
             deleteat!(cell.crossings, i)
 
@@ -321,8 +321,8 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
         # Pick a starting edge
         crossing = first(cell.crossings)
         starting_edge = UInt8(0)
-        for edge in [N, S, E, W]
-            if edge & crossing != 0
+        for edge in (N, S, E, W)
+            if !iszero(edge & crossing)
                 starting_edge = edge
                 break
             end
