@@ -184,7 +184,7 @@ function get_level_cells(z, h::Number)
     cells = Dict{(Tuple{Int,Int}),Cell}()
     xi_max, yi_max = size(z)
 
-    for xi in 1:xi_max - 1
+    @inbounds for xi in 1:xi_max - 1
         for yi in 1:yi_max - 1
             elts = (z[xi, yi], z[xi + 1, yi], z[xi + 1, yi + 1], z[xi, yi + 1])
             case = _get_case(elts, h)
@@ -221,7 +221,7 @@ end
 
 const fwd, rev = (UInt8(0)), (UInt8(1))
 
-function add_vertex!(curve::Curve2{T}, pos::(Tuple{T,T}), dir::UInt8) where {T}
+@inline function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir::UInt8) where {T}
     if dir == fwd
         push!(curve.vertices, SVector{2,T}(pos...))
     else
