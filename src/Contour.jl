@@ -143,6 +143,8 @@ const NS, NE, NW = N|S, N|E, N|W
 const SN, SE, SW = S|N, S|E, S|W
 const EN, ES, EW = E|N, E|S, E|W
 const WN, WS, WE = W|N, W|S, W|E
+const NWSE = NW | 0x10 # special (ambiguous case)
+const NESW = NE | 0x10 # special (ambiguous case)
 
 const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
                 "W", "NW", "SW", "Invalid crossing", "WE"]
@@ -168,27 +170,45 @@ end
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
 function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
-    cell = cells[ipack(xi,yi)]
-    if !iszero(cell[1]) && !iszero(cell[1] & entry_edge)
-        next_edge = cell[1] ⊻ entry_edge
-        new_cell = (0x00, cell[2])
-    elseif !iszero(cell[2]) && !iszero(cell[2] & entry_edge)
-        next_edge = cell[2] ⊻ entry_edge
-        new_cell = (cell[1], 0x00)
-    else
-        error("There is no edge containing ", entry_edge)
+    key = ipack(xi,yi)
+    cell = cells[key]
+    if iszero(cell & 0x10)
+        next_edge = cell ⊻ entry_edge
+        delete!(cells, key)
+        return next_edge
+    else  # ambiguous case flag
+        if cell == NWSE
+            if !iszero(NW & entry_edge)
+                cells[key] = SE
+                return NW ⊻ entry_edge
+            elseif !iszero(SE & entry_edge)
+                cells[key] = NW
+                return SE ⊻ entry_edge
+            else
+                error("ambiguous case unhandled")
+            end
+        elseif cell == NESW
+            if !iszero(NE & entry_edge)
+                cells[key] = SW
+                return NE ⊻ entry_edge
+            elseif !iszero(SW & entry_edge)
+                cells[key] = NE
+                return SW ⊻ entry_edge
+            else
+                error("ambiguous case unhandled")
+            end
+        end
     end
-    if iszero(new_cell[1]) && iszero(new_cell[2])
-        delete!(cells, ipack(xi,yi))
-    else
-        cells[ipack(xi,yi)] = new_cell
-    end
-    return next_edge
 end
 
-@inline function get_first_crossing(cell)
-    cell[1] != 0x00 && return cell[1]
-    cell[2] != 0x00 && return cell[2]
+function get_first_crossing(cell)
+    if iszero(cell & 0x10)
+        return cell
+    elseif cell == NWSE
+        return NW
+    elseif cell == NESW
+        return NE
+    end
     error("this should be deleted")
 end
 
@@ -204,7 +224,7 @@ const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 end
 
 function get_level_cells(z, h::Number)
-    cells = Dict{UInt64,Tuple{UInt8,UInt8}}()
+    cells = Dict{UInt64,UInt8}()
     xi_max, yi_max = size(z)
 
     if xi_max > typemax(UInt32) || yi_max > typemax(UInt32)
@@ -225,18 +245,18 @@ function get_level_cells(z, h::Number)
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
                 if 0.25*sum(elts) >= h
-                    cells[ipack(xi, yi)] = (NW, SE)
+                    cells[ipack(xi, yi)] = NWSE
                 else
-                    cells[ipack(xi, yi)] = (NE, SW)
+                    cells[ipack(xi, yi)] = NESW
                 end
             elseif case == 0x0a
                 if 0.25*sum(elts) >= h
-                    cells[ipack(xi, yi)] = (NE, SW)
+                    cells[ipack(xi, yi)] = NESW
                 else
-                    cells[ipack(xi, yi)] = (NW, SE)
+                    cells[ipack(xi, yi)] = NWSE
                 end
             else
-                cells[ipack(xi, yi)] = (edge_LUT[case], 0x00)
+                cells[ipack(xi, yi)] = edge_LUT[case]
             end
         end
     end
