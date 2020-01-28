@@ -147,6 +147,18 @@ const WN, WS, WE = W|N, W|S, W|E
 const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
                 "W", "NW", "SW", "Invalid crossing", "WE"]
 
+
+"""
+Pack two 32 bit numbers in an UInt64 to speed up hashing in dicts
+"""
+function ipack(xi::Int64,yi::Int64)
+    (UInt64(xi) << 32) | UInt64(yi)
+end
+
+function un_ipack(key)
+    UInt32(key >> 32), UInt32(key & typemax(UInt32))
+end
+
 # The way a contour crossing goes through a cell is labeled
 # by combining compass directions (e.g. a NW crossing connects
 # the N edge and W edges of the cell).  The Cell type records
@@ -154,7 +166,7 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
 function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
-    cell = cells[(xi,yi)]
+    cell = cells[ipack(xi,yi)]
     if !iszero(cell[1]) && !iszero(cell[1] & entry_edge)
         next_edge = cell[1] ⊻ entry_edge
         new_cell = (0x00, cell[2])
@@ -165,9 +177,9 @@ function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
         error("There is no edge containing ", entry_edge)
     end
     if iszero(new_cell[1]) && iszero(new_cell[2])
-        delete!(cells, (xi,yi))
+        delete!(cells, ipack(xi,yi))
     else
-        cells[(xi,yi)] = new_cell
+        cells[ipack(xi,yi)] = new_cell
     end
     return next_edge
 end
@@ -190,7 +202,7 @@ const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 end
 
 function get_level_cells(z, h::Number)
-    cells = Dict{Tuple{Int,Int},Tuple{UInt8,UInt8}}()
+    cells = Dict{UInt64,Tuple{UInt8,UInt8}}()
     xi_max, yi_max = size(z)
 
     @inbounds for xi in 1:xi_max - 1
@@ -207,18 +219,18 @@ function get_level_cells(z, h::Number)
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
                 if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = (NW, SE)
+                    cells[ipack(xi, yi)] = (NW, SE)
                 else
-                    cells[(xi, yi)] = (NE, SW)
+                    cells[ipack(xi, yi)] = (NE, SW)
                 end
             elseif case == 0x0a
                 if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = (NE, SW)
+                    cells[ipack(xi, yi)] = (NE, SW)
                 else
-                    cells[(xi, yi)] = (NW, SE)
+                    cells[ipack(xi, yi)] = (NW, SE)
                 end
             else
-                cells[(xi, yi)] = (edge_LUT[case], 0x00)
+                cells[ipack(xi, yi)] = (edge_LUT[case], 0x00)
             end
         end
     end
@@ -320,7 +332,8 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
         contour = Curve2(promote_type(map(eltype, (x, y, z))...))
 
         # Pick initial box
-        (xi_0, yi_0), cell = first(cells)
+        key, cell = first(cells)
+        (xi_0, yi_0) = un_ipack(key)
         (xi, yi) = (xi_0, yi_0)
 
         # Pick a starting edge
