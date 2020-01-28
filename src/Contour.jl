@@ -146,6 +146,8 @@ const WN, WS, WE = W|N, W|S, W|E
 const NWSE = NW | 0x10 # special (ambiguous case)
 const NESW = NE | 0x10 # special (ambiguous case)
 
+isambiguous(cell) = iszero(cell & 0x10)
+
 const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
                 "W", "NW", "SW", "Invalid crossing", "WE"]
 
@@ -172,7 +174,7 @@ end
 function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
     key = ipack(xi,yi)
     cell = cells[key]
-    if iszero(cell & 0x10)
+    if cell != NWSE && cell != NESW
         next_edge = cell ⊻ entry_edge
         delete!(cells, key)
         return next_edge
@@ -199,7 +201,7 @@ function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
 end
 
 function get_first_crossing(cell)
-    if cell != NWSE || cell != NESW
+    if cell != NWSE && cell != NESW
         return cell
     elseif cell == NWSE
         return NW
