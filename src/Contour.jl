@@ -162,7 +162,7 @@ end
 function un_ipack(key)
     # we can use unsafe truncation here because the bounds
     # are enforced in the initial masking.
-    unsafe_trunc(UInt32, key >> 32), unsafe_trunc(UInt32, key & typemax(UInt32))
+    unsafe_trunc(UInt32, key >>> 32), unsafe_trunc(UInt32, key)
 end
 
 # The way a contour crossing goes through a cell is labeled
