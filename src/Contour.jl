@@ -157,11 +157,17 @@ struct Cell
     crossings::Vector{UInt8}
 end
 
-function get_next_edge!(cell::Cell, entry_edge::UInt8)
+function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
+    cell = cells[(xi,yi)]
     for (i, edge) in enumerate(cell.crossings)
         if !iszero(edge & entry_edge)
             next_edge = edge ⊻ entry_edge
-            deleteat!(cell.crossings, i)
+
+            if length(cell.crossings) == 1
+                delete!(cells, (xi,yi))
+            else
+                deleteat!(cell.crossings, i)
+            end
 
             return next_edge
         end
@@ -263,11 +269,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     loopback_edge = entry_edge
 
     while true
-        cell = cells[(xi, yi)]
-        exit_edge = get_next_edge!(cell, entry_edge)
-        if length(cell.crossings) == 0
-            delete!(cells, (xi, yi))
-        end
+        exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
 
         add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
 
