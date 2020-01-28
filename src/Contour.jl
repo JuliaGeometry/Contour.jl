@@ -181,28 +181,25 @@ function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
             if !iszero(NW & entry_edge)
                 cells[key] = SE
                 return NW ⊻ entry_edge
-            elseif !iszero(SE & entry_edge)
+            else
                 cells[key] = NW
                 return SE ⊻ entry_edge
-            else
-                error("ambiguous case unhandled")
             end
         elseif cell == NESW
             if !iszero(NE & entry_edge)
                 cells[key] = SW
                 return NE ⊻ entry_edge
-            elseif !iszero(SW & entry_edge)
+            else
                 cells[key] = NE
                 return SW ⊻ entry_edge
-            else
-                error("ambiguous case unhandled")
             end
         end
+        error("ambiguous case unhandled")
     end
 end
 
 function get_first_crossing(cell)
-    if iszero(cell & 0x10)
+    if cell != NWSE || cell != NESW
         return cell
     elseif cell == NWSE
         return NW
@@ -241,22 +238,24 @@ function get_level_cells(z, h::Number)
                 continue
             end
 
+            key = ipack(xi,yi)
+
             # Process ambiguous cells (case 5 and 10) using
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
                 if 0.25*sum(elts) >= h
-                    cells[ipack(xi, yi)] = NWSE
+                    cells[key] = NWSE
                 else
-                    cells[ipack(xi, yi)] = NESW
+                    cells[key] = NESW
                 end
             elseif case == 0x0a
                 if 0.25*sum(elts) >= h
-                    cells[ipack(xi, yi)] = NESW
+                    cells[key] = NESW
                 else
-                    cells[ipack(xi, yi)] = NWSE
+                    cells[key] = NWSE
                 end
             else
-                cells[ipack(xi, yi)] = edge_LUT[case]
+                cells[key] = edge_LUT[case]
             end
         end
     end
