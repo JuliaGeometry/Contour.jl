@@ -157,7 +157,7 @@ end
 
 function get_next_edge!(cell::Cell, entry_edge::UInt8)
     for (i, edge) in enumerate(cell.crossings)
-        if edge & entry_edge != 0
+        if !iszero(edge & entry_edge)
             next_edge = edge ⊻ entry_edge
             deleteat!(cell.crossings, i)
 
@@ -168,36 +168,40 @@ function get_next_edge!(cell::Cell, entry_edge::UInt8)
 end
 
 # Maps cell type to crossing types for non-ambiguous cells
-const edge_LUT = [SW, SE, EW, NE, 0, NS, NW, NW, NS, 0, NE, EW, SE, SW]
+const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
+
+function _get_case(z, h)
+    case = z[1] > h ? 0x01 : 0x00
+    z[2] > h && (case |= 0x02)
+    z[3] > h && (case |= 0x04)
+    z[4] > h && (case |= 0x08)
+    case
+end
 
 function get_level_cells(z, h::Number)
     cells = Dict{(Tuple{Int,Int}),Cell}()
     xi_max, yi_max = size(z)
 
-    local case::Int8
-
-    for xi in 1:xi_max - 1
+    @inbounds for xi in 1:xi_max - 1
         for yi in 1:yi_max - 1
-            case = 1(z[xi, yi] > h)     |
-                   2(z[xi + 1, yi] > h)   |
-                   4(z[xi + 1, yi + 1] > h) |
-                   8(z[xi, yi + 1] > h)
+            elts = (z[xi, yi], z[xi + 1, yi], z[xi + 1, yi + 1], z[xi, yi + 1])
+            case = _get_case(elts, h)
 
             # Contour does not go through these cells
-            if case == 0 || case == 15
+            if iszero(case) || case == 0x0f
                 continue
             end
 
             # Process ambiguous cells (case 5 and 10) using
             # a bilinear interpolation of the cell-center value.
-            if case == 5
-                if 0.25(z[xi, yi] + z[xi, yi + 1] + z[xi + 1, yi] + z[xi + 1, yi + 1]) >= h
+            if case == 0x05
+                if 0.25*sum(elts) >= h
                     cells[(xi, yi)] = Cell([NW, SE])
                 else
                     cells[(xi, yi)] = Cell([NE, SW])
                 end
-            elseif case == 10
-                if 0.25(z[xi, yi] + z[xi, yi + 1] + z[xi + 1, yi] + z[xi + 1, yi + 1]) >= h
+            elseif case == 0x0a
+                if 0.25*sum(elts) >= h
                     cells[(xi, yi)] = Cell([NE, SW])
                 else
                     cells[(xi, yi)] = Cell([NW, SE])
@@ -215,7 +219,7 @@ end
 
 const fwd, rev = (UInt8(0)), (UInt8(1))
 
-function add_vertex!(curve::Curve2{T}, pos::(Tuple{T,T}), dir::UInt8) where {T}
+@inline function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir::UInt8) where {T}
     if dir == fwd
         push!(curve.vertices, SVector{2,T}(pos...))
     else
@@ -338,8 +342,8 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
         # Pick a starting edge
         crossing = first(cell.crossings)
         starting_edge = UInt8(0)
-        for edge in [N, S, E, W]
-            if edge & crossing != 0
+        for edge in (N, S, E, W)
+            if !iszero(edge & crossing)
                 starting_edge = edge
                 break
             end
