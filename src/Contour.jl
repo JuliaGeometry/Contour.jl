@@ -153,28 +153,30 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # the type of crossing that a cell contains.  While most
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
-struct Cell
-    crossings::Vector{UInt8}
-end
-
 function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
     cell = cells[(xi,yi)]
-    for (i, edge) in enumerate(cell.crossings)
-        if !iszero(edge & entry_edge)
-            next_edge = edge ⊻ entry_edge
-
-            if length(cell.crossings) == 1
-                delete!(cells, (xi,yi))
-            else
-                deleteat!(cell.crossings, i)
-            end
-
-            return next_edge
-        end
+    if !iszero(cell[1]) && !iszero(cell[1] & entry_edge)
+        next_edge = cell[1] ⊻ entry_edge
+        new_cell = (0x00, cell[2])
+    elseif !iszero(cell[2]) && !iszero(cell[2] & entry_edge)
+        next_edge = cell[2] ⊻ entry_edge
+        new_cell = (cell[1], 0x00)
+    else
+        error("There is no edge containing ", entry_edge)
     end
-    error("There is no edge containing ", entry_edge)
+    if iszero(new_cell[1]) && iszero(new_cell[2])
+        delete!(cells, (xi,yi))
+    else
+        cells[(xi,yi)] = new_cell
+    end
+    return next_edge
 end
 
+function get_first_crossing(cell)
+    cell[1] != 0x00 && return cell[1]
+    cell[2] != 0x00 && return cell[2]
+    error("this shoudl be deleted")
+end
 # Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 
@@ -187,7 +189,7 @@ function _get_case(z, h)
 end
 
 function get_level_cells(z, h::Number)
-    cells = Dict{(Tuple{Int,Int}),Cell}()
+    cells = Dict{Tuple{Int,Int},Tuple{UInt8,UInt8}}()
     xi_max, yi_max = size(z)
 
     @inbounds for xi in 1:xi_max - 1
@@ -204,18 +206,18 @@ function get_level_cells(z, h::Number)
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
                 if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = Cell([NW, SE])
+                    cells[(xi, yi)] = (NW, SE)
                 else
-                    cells[(xi, yi)] = Cell([NE, SW])
+                    cells[(xi, yi)] = (NE, SW)
                 end
             elseif case == 0x0a
                 if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = Cell([NE, SW])
+                    cells[(xi, yi)] = (NE, SW)
                 else
-                    cells[(xi, yi)] = Cell([NW, SE])
+                    cells[(xi, yi)] = (NW, SE)
                 end
             else
-                cells[(xi, yi)] = Cell([edge_LUT[case]])
+                cells[(xi, yi)] = (edge_LUT[case], 0x00)
             end
         end
     end
@@ -294,7 +296,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
 end
 
 
-function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
+function trace_contour(x, y, z, h::Number, cells::Dict)
 
     contours = ContourLevel(h)
 
@@ -321,7 +323,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
         (xi, yi) = (xi_0, yi_0)
 
         # Pick a starting edge
-        crossing = first(cell.crossings)
+        crossing = get_first_crossing(cell)
         starting_edge = UInt8(0)
         for edge in (N, S, E, W)
             if !iszero(edge & crossing)
