@@ -151,12 +151,14 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 """
 Pack two 32 bit numbers in an UInt64 to speed up hashing in dicts
 """
-function ipack(xi::Int64,yi::Int64)
-    (UInt64(xi) << 32) | UInt64(yi)
+function ipack(xi,yi)
+    (unsafe_trunc(UInt64, xi) << 32) | unsafe_trunc(UInt64, yi)
 end
 
 function un_ipack(key)
-    UInt32(key >> 32), UInt32(key & typemax(UInt32))
+    # we can use unsafe truncation here because the bounds
+    # are enforced in the initial masking.
+    unsafe_trunc(UInt32, key >> 32), unsafe_trunc(UInt32, key & typemax(UInt32))
 end
 
 # The way a contour crossing goes through a cell is labeled
@@ -204,6 +206,10 @@ end
 function get_level_cells(z, h::Number)
     cells = Dict{UInt64,Tuple{UInt8,UInt8}}()
     xi_max, yi_max = size(z)
+
+    if xi_max > typemax(UInt32) || yi_max > typemax(UInt32)
+        error("Grid is larger than allowed")
+    end
 
     @inbounds for xi in 1:xi_max - 1
         for yi in 1:yi_max - 1
