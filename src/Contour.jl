@@ -172,15 +172,16 @@ function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
     return next_edge
 end
 
-function get_first_crossing(cell)
+@inline function get_first_crossing(cell)
     cell[1] != 0x00 && return cell[1]
     cell[2] != 0x00 && return cell[2]
-    error("this shoudl be deleted")
+    error("this should be deleted")
 end
+
 # Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 
-function _get_case(z, h)
+@inline function _get_case(z, h)
     case = z[1] > h ? 0x01 : 0x00
     z[2] > h && (case |= 0x02)
     z[3] > h && (case |= 0x04)
