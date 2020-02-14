@@ -197,6 +197,7 @@ end
 
 # Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
+const start_edge_LUT = (0x00, 0x00, 0x01, 0x00, 0x01, 0x02, 0x00, 0x00, 0x01, 0x02, 0x00, 0x04, 0x00, 0x00)
 
 function _get_case(z, h)
     case = z[1] > h ? 0x01 : 0x00
@@ -259,7 +260,7 @@ end
 
 function findfirst_cell(m, from_x, from_y)
     s = size(m)
-    for xi = from_x:s[1], yi = from_y:s[2]
+    @inbounds for xi = from_x:s[1], yi = from_y:s[2]
         !iszero(m[xi,yi]) && return xi,yi
     end
     return 0,0
@@ -373,7 +374,7 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
     nonempty_cells = cell_pop
     (xi_0, yi_0) = (1,1)
 
-    while nonempty_cells > 0
+    @inbounds while nonempty_cells > 0
         contour = Curve2(promote_type(map(eltype, (x, y, z))...))
 
         # Pick initial box
@@ -384,13 +385,7 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
 
         # Pick a starting edge
         crossing = get_first_crossing(cell)
-        starting_edge = UInt8(0)
-        for edge in (N, S, E, W)
-            if !iszero(edge & crossing)
-                starting_edge = edge
-                break
-            end
-        end
+        starting_edge = start_edge_LUT[crossing]
 
         # Add the contour entry location for cell (xi_0,yi_0)
         add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, starting_edge), fwd)
