@@ -205,7 +205,7 @@ end
 function get_level_cells(z, h::Number)
 
     xi_max, yi_max = size(z)
-    cells = fill(0x0, (xi_max-1,yi_max-1))
+    cells = zeros(UInt8, (xi_max-1,yi_max-1))
 
     cell_pop = 0
 
@@ -242,6 +242,14 @@ function get_level_cells(z, h::Number)
     end
 
     return cells, cell_pop
+end
+
+function findfirst_cell(m, from_x, from_y)
+    s = size(m)
+    for xi = from_x:s[1], yi = from_y:s[2]
+        !iszero(m[xi,yi]) && return xi,yi
+    end
+    return 0,0
 end
 
 # Some constants used by trace_contour
@@ -350,13 +358,14 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
     # It then tries to trace the contour in the opposite direction.
 
     nonempty_cells = cell_pop
+    (xi_0, yi_0) = (1,1)
 
     while nonempty_cells > 0
         contour = Curve2(promote_type(map(eltype, (x, y, z))...))
 
         # Pick initial box
-        ind = findfirst(!iszero, cells)
-        (xi_0, yi_0) = (ind[1], ind[2])
+        (xi_0, yi_0) = findfirst_cell(cells, xi_0, yi_0)
+        iszero(xi_0) && iszero(yi_0) && break
         (xi, yi) = (xi_0, yi_0)
         cell = cells[xi,yi]
 
