@@ -156,7 +156,7 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # have two crossings.
 function get_next_edge!(cells::Array, xi, yi, entry_edge::UInt8, cell_pop)
     cell = cells[xi,yi]
-    if iszero(cell & 0x10)
+    if cell != NWSE && cell != NESW
         next_edge = cell ⊻ entry_edge
         cells[xi,yi] = 0x0
         return next_edge, cell_pop - 1
@@ -182,13 +182,7 @@ function get_next_edge!(cells::Array, xi, yi, entry_edge::UInt8, cell_pop)
 end
 
 function get_first_crossing(cell)
-    if iszero(cell & 0x10)
-        return cell
-    elseif cell == NWSE
-        return NW
-    elseif cell == NESW
-        return NE
-    end
+    cell & 0x0f
 end
 
 # Maps cell type to crossing types for non-ambiguous cells
@@ -209,8 +203,8 @@ function get_level_cells(z, h::Number)
 
     cell_pop = 0
 
-    @inbounds for xi in 1:xi_max - 1
-        for yi in 1:yi_max - 1
+    @inbounds for yi in 1:yi_max - 1
+        for xi in 1:xi_max - 1
             elts = (z[xi, yi], z[xi + 1, yi], z[xi + 1, yi + 1], z[xi, yi + 1])
             case = _get_case(elts, h)
 
