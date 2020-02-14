@@ -239,8 +239,8 @@ function get_level_cells(z, h::Number)
 end
 
 function findfirst_cell(m, from_x, from_y)
-    s = size(m)
-    for xi = from_x:s[1], yi = from_y:s[2]
+    s = size(m)::Tuple{Int,Int}
+    @inbounds for xi = from_x:s[1], yi = from_y:s[2]
         !iszero(m[xi,yi]) && return xi,yi
     end
     return 0,0
@@ -263,17 +263,17 @@ end
 # crosses the specified edge.
 function interpolate(x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
     if edge == W
-        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
-        x_interp = x[xi]
+        @inbounds y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
+        @inbounds x_interp = x[xi]
     elseif edge == E
-        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi + 1, yi]) / (z[xi + 1, yi + 1] - z[xi + 1, yi])
-        x_interp = x[xi + 1]
+        @inbounds y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi + 1, yi]) / (z[xi + 1, yi + 1] - z[xi + 1, yi])
+        @inbounds x_interp = x[xi + 1]
     elseif edge == N
-        y_interp = y[yi + 1]
-        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1])
+        @inbounds y_interp = y[yi + 1]
+        @inbounds x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1])
     elseif edge == S
-        y_interp = y[yi]
-        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
+        @inbounds y_interp = y[yi]
+        @inbounds x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
     end
 
     return x_interp, y_interp
