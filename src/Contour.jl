@@ -66,6 +66,13 @@ function contour(x, y, z, level::Number)
     trace_contour(x, y, z, level, cells, cell_pop)
 end
 
+function contour(cells, x, y, z, level::Number)
+    # Todo: size checking on x,y,z
+    cell_pop = get_level_cells!(cells, z, level)
+    trace_contour(x, y, z, level, cells, cell_pop)
+end
+
+
 """
 `contours` returns a set of isolines.
 
@@ -77,7 +84,10 @@ contours(::Any...) = error("This method exists only for documentation purposes")
 `contours(x,y,z,levels)` Trace the contour levels indicated by the `levels`
 argument.
 """
-contours(x, y, z, levels) = ContourCollection([contour(x, y, z, l) for l in levels])
+function contours(x, y, z, levels)
+    cells = cell_matrix(z)
+    ContourCollection([contour(cells, x, y, z, l) for l in levels])
+end
 
 """
 `contours(x,y,z,Nlevels::Integer)` Trace `Nlevels` contour levels at heights
@@ -198,10 +208,19 @@ function _get_case(z, h)
     end
 end
 
-function get_level_cells(z, h::Number)
-
+function cell_matrix(z)
     xi_max, yi_max = size(z)
     cells = zeros(UInt8, (xi_max-1,yi_max-1))
+end
+
+function get_level_cells(z,h::Number)
+    cells = cell_matrix(z)
+    cell_pop = get_level_cells!(cells, z, h)
+    cells, cell_pop
+end
+
+function get_level_cells!(cells, z, h::Number)
+    xi_max, yi_max = size(z)
 
     cell_pop = 0
 
@@ -237,7 +256,7 @@ function get_level_cells(z, h::Number)
         end
     end
 
-    return cells, cell_pop
+    return cell_pop
 end
 
 function findfirst_cell(m, from_x, from_y)
