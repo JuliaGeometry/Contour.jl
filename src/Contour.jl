@@ -63,7 +63,6 @@ over the result.
 function contour(x, y, z, level::Number)
     # Todo: size checking on x,y,z
     cells, cell_pop = get_level_cells(z, level)
-    @show size(cells), typeof(cells), cell_pop
     trace_contour(x, y, z, level, cells, cell_pop)
 end
 
@@ -155,28 +154,28 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # the type of crossing that a cell contains.  While most
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
-function get_next_edge!(cells::Array, xi, yi, entry_edge::UInt8)
+function get_next_edge!(cells::Array, xi, yi, entry_edge::UInt8, cell_pop)
     cell = cells[xi,yi]
     if iszero(cell & 0x10)
         next_edge = cell ⊻ entry_edge
         cells[xi,yi] = 0x0
-        return next_edge
+        return next_edge, cell_pop - 1
     else  # ambiguous case flag
         if cell == NWSE
             if !iszero(NW & entry_edge)
                 cells[xi,yi] = SE
-                return NW ⊻ entry_edge
+                return NW ⊻ entry_edge, cell_pop
             elseif !iszero(SE & entry_edge)
                 cells[xi,yi] = NW
-                return SE ⊻ entry_edge
+                return SE ⊻ entry_edge, cell_pop
             end
         elseif cell == NESW
             if !iszero(NE & entry_edge)
                 cells[xi,yi] = SW
-                return NE ⊻ entry_edge
+                return NE ⊻ entry_edge, cell_pop
             elseif !iszero(SW & entry_edge)
                 cells[xi,yi] = NE
-                return SW ⊻ entry_edge
+                return SW ⊻ entry_edge, cell_pop
             end
         end
     end
@@ -314,9 +313,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     loopback_edge = entry_edge
 
     while true
-        exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
-
-        cell_pop -= 1
+        exit_edge, cell_pop = get_next_edge!(cells, xi, yi, entry_edge, cell_pop)
 
         add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
 
