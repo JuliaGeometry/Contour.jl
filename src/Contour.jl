@@ -271,33 +271,23 @@ end
 
 const fwd, rev = (UInt8(0)), (UInt8(1))
 
-function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir::UInt8) where {T}
-    if dir == fwd
-        push!(curve.vertices, SVector{2,T}(pos...))
-    else
-        pushfirst!(curve.vertices, SVector{2,T}(pos...))
-    end
-end
-
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
 function interpolate(x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
-    if edge == W
-        @inbounds y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
-        @inbounds x_interp = x[xi]
+    @inbounds if edge == W
+        return SVector{2,T}(x[xi],
+                    y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi]))
     elseif edge == E
-        @inbounds y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi + 1, yi]) / (z[xi + 1, yi + 1] - z[xi + 1, yi])
-        @inbounds x_interp = x[xi + 1]
+        return SVector{2,T}(x[xi + 1],
+                    y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi + 1, yi]) / (z[xi + 1, yi + 1] - z[xi + 1, yi]))
     elseif edge == N
-        @inbounds y_interp = y[yi + 1]
-        @inbounds x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1])
+        return SVector{2,T}(x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1]),
+                    y[yi + 1])
     elseif edge == S
-        @inbounds y_interp = y[yi]
-        @inbounds x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
+        return SVector{2,T}(x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi]),
+                    y[yi])
     end
-
-    return x_interp, y_interp
 end
 
 function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
@@ -318,8 +308,7 @@ function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatr
         y_interp = y[xi,yi] + Δ[1]
         x_interp = x[xi,yi] + Δ[2]
     end
-
-    return x_interp, y_interp
+    return SVector{2,T}(x_interp, y_interp)
 end
 
 
@@ -338,7 +327,12 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     while true
         exit_edge, cell_pop = get_next_edge!(cells, xi, yi, entry_edge, cell_pop)
 
-        add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
+        pos = interpolate(x, y, z, h, xi, yi, exit_edge)
+        if dir == fwd
+            push!(curve.vertices, pos)
+        else
+            pushfirst!(curve.vertices, pos)
+        end
 
         if exit_edge == N
             yi += 1
@@ -363,6 +357,8 @@ end
 
 function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
 
+    CT = promote_type(map(eltype, (x, y, z))...)
+
     contours = ContourLevel(h)
 
     (xi_max, yi_max) = size(z)
@@ -376,7 +372,7 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
     (xi_0, yi_0) = (1,1)
 
     @inbounds while nonempty_cells > 0
-        contour = Curve2(promote_type(map(eltype, (x, y, z))...))
+        contour = Curve2(CT)
 
         # Pick initial box
         (xi_0, yi_0) = findfirst_cell(cells, xi_0, yi_0)
@@ -395,7 +391,7 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
         end
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, starting_edge), fwd)
+        push!(contour.vertices, interpolate(x, y, z, h, xi_0, yi_0, starting_edge))
 
         # Start trace in forward direction
         xi_end, yi_end, cp = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, nonempty_cells, fwd)
