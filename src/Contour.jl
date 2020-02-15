@@ -189,11 +189,13 @@ end
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 
 function _get_case(z, h)
-    case = z[1] > h ? 0x01 : 0x00
-    z[2] > h && (case |= 0x02)
-    z[3] > h && (case |= 0x04)
-    z[4] > h && (case |= 0x08)
-    case
+    @inbounds begin
+        case = z[1] > h ? 0x01 : 0x00
+        z[2] > h && (case |= 0x02)
+        z[3] > h && (case |= 0x04)
+        z[4] > h && (case |= 0x08)
+        case
+    end
 end
 
 function get_level_cells(z, h::Number)
@@ -354,7 +356,7 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
     nonempty_cells = cell_pop
     (xi_0, yi_0) = (1,1)
 
-    while nonempty_cells > 0
+    @inbounds while nonempty_cells > 0
         contour = Curve2(promote_type(map(eltype, (x, y, z))...))
 
         # Pick initial box
