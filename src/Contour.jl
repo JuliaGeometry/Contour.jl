@@ -166,28 +166,26 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # have two crossings.
 function get_next_edge!(cells::Array, xi, yi, entry_edge::UInt8, cell_pop)
     cell = cells[xi,yi]
-    if cell != NWSE && cell != NESW
+    if cell == NWSE
+        if !iszero(NW & entry_edge)
+            cells[xi,yi] = SE
+            return NW ⊻ entry_edge, cell_pop
+        elseif !iszero(SE & entry_edge)
+            cells[xi,yi] = NW
+            return SE ⊻ entry_edge, cell_pop
+        end
+    elseif cell == NESW
+        if !iszero(NE & entry_edge)
+            cells[xi,yi] = SW
+            return NE ⊻ entry_edge, cell_pop
+        elseif !iszero(SW & entry_edge)
+            cells[xi,yi] = NE
+            return SW ⊻ entry_edge, cell_pop
+        end
+    else
         next_edge = cell ⊻ entry_edge
         cells[xi,yi] = 0x0
         return next_edge, cell_pop - 1
-    else  # ambiguous case flag
-        if cell == NWSE
-            if !iszero(NW & entry_edge)
-                cells[xi,yi] = SE
-                return NW ⊻ entry_edge, cell_pop
-            elseif !iszero(SE & entry_edge)
-                cells[xi,yi] = NW
-                return SE ⊻ entry_edge, cell_pop
-            end
-        elseif cell == NESW
-            if !iszero(NE & entry_edge)
-                cells[xi,yi] = SW
-                return NE ⊻ entry_edge, cell_pop
-            elseif !iszero(SW & entry_edge)
-                cells[xi,yi] = NE
-                return SW ⊻ entry_edge, cell_pop
-            end
-        end
     end
 end
 
