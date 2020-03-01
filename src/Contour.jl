@@ -170,7 +170,7 @@ function get_next_edge!(cells::Array, xi, yi, entry_edge::UInt8, cell_pop)
         if !iszero(NW & entry_edge)
             cells[xi,yi] = SE
             return NW ⊻ entry_edge, cell_pop
-        elseif !iszero(SE & entry_edge)
+        else #SE
             cells[xi,yi] = NW
             return SE ⊻ entry_edge, cell_pop
         end
@@ -178,7 +178,7 @@ function get_next_edge!(cells::Array, xi, yi, entry_edge::UInt8, cell_pop)
         if !iszero(NE & entry_edge)
             cells[xi,yi] = SW
             return NE ⊻ entry_edge, cell_pop
-        elseif !iszero(SW & entry_edge)
+        else #SW
             cells[xi,yi] = NE
             return SW ⊻ entry_edge, cell_pop
         end
@@ -237,17 +237,9 @@ function get_level_cells!(cells, z, h::Number)
             # Process ambiguous cells (case 5 and 10) using
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
-                if 0.25*sum(elts) >= h
-                    cells[xi, yi] = NWSE
-                else
-                    cells[xi, yi] = NESW
-                end
+                cells[xi, yi] = 0.25*sum(elts) >= h ? NWSE : NESW
             elseif case == 0x0a
-                if 0.25*sum(elts) >= h
-                    cells[xi, yi] = NESW
-                else
-                    cells[xi, yi] = NWSE
-                end
+                cells[xi, yi] = 0.25*sum(elts) >= h ? NESW : NWSE
             else
                 cells[xi, yi] = edge_LUT[case]
             end
@@ -282,7 +274,7 @@ function interpolate(x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractMatr
     elseif edge == N
         return SVector{2,T}(x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1]),
                     y[yi + 1])
-    elseif edge == S
+    else #S
         return SVector{2,T}(x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi]),
                     y[yi])
     end
@@ -301,7 +293,7 @@ function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatr
         Δ = [y[xi+1,yi+1] - y[xi,  yi+1], x[xi+1,yi+1] - x[xi,  yi+1]].*(h - z[xi,  yi+1])/(z[xi+1,yi+1] - z[xi,  yi+1])
         y_interp = y[xi,yi+1] + Δ[1]
         x_interp = x[xi,yi+1] + Δ[2]
-    elseif edge == S
+    else #S
         Δ = [y[xi+1,yi  ] - y[xi,  yi  ], x[xi+1,yi  ] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi+1,yi  ] - z[xi,  yi  ])
         y_interp = y[xi,yi] + Δ[1]
         x_interp = x[xi,yi] + Δ[2]
@@ -341,7 +333,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
         elseif exit_edge == E
             xi += 1
             entry_edge = W
-        elseif exit_edge == W
+        else #W
             xi -= 1
             entry_edge = E
         end
@@ -380,12 +372,15 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
 
         # Pick a starting edge
         crossing = get_first_crossing(cell)
-        starting_edge = UInt8(0)
-        for edge in (N, S, E, W)
-            if !iszero(edge & crossing)
-                starting_edge = edge
-                break
-            end
+
+        if !iszero(N & crossing)
+            starting_edge = N
+        elseif !iszero(S & crossing)
+            starting_edge = S
+        elseif !iszero(E & crossing)
+            starting_edge = E
+        else #W
+            starting_edge = W
         end
 
         # Add the contour entry location for cell (xi_0,yi_0)
@@ -409,7 +404,7 @@ function trace_contour(x, y, z, h::Number, cells::Array, cell_pop)
         elseif starting_edge == E
             xi = xi_0 + 1
             starting_edge = W
-        elseif starting_edge == W
+        else #W
             xi = xi_0 - 1
             starting_edge = E
         end
