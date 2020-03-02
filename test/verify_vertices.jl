@@ -154,6 +154,31 @@ for line in contourlevels.lines
     ys .== [v[2] for v in line.vertices]
 end
 
+
+# Test range API
+#
+# f(x,y) = x^2 - y^2
+#
+Δ = 0.01
+X = -3:Δ:3
+Y = -3:Δ:3
+
+Z = [(x^2 - y^2)::Float64 for x in X, y in Y]
+h = rand() * (maximum(Z) - minimum(Z)) + minimum(Z)
+
+contourlevels = Contour.contour(X, Y, Z, h)
+for line in contourlevels.lines
+    # Contour vertices lie on a circle around the origin
+    for v in line.vertices
+        @test isapprox(v[1]^2 - v[2]^2, h, atol=0.1Δ)
+    end
+
+    # coordinates() returns the correct values
+    xs, ys = coordinates(line)
+    xs .== [v[1] for v in line.vertices]
+    ys .== [v[2] for v in line.vertices]
+end
+
 # Test that closed contours are identified correctly
 # when ambiguous cells are involved
 
