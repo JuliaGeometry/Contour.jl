@@ -156,38 +156,36 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
     key = (xi,yi)
     cell = cells[key]
-    if iszero(cell & 0x10)
+    if cell == NWSE
+        if !iszero(NW & entry_edge)
+            cells[key] = SE
+            return NW ⊻ entry_edge
+        else #Nw
+            cells[key] = NW
+            return SE ⊻ entry_edge
+        end
+    elseif cell == NESW
+        if !iszero(NE & entry_edge)
+            cells[key] = SW
+            return NE ⊻ entry_edge
+        else #SW
+            cells[key] = NE
+            return SW ⊻ entry_edge
+        end
+    else
         next_edge = cell ⊻ entry_edge
         delete!(cells, key)
         return next_edge
-    else  # ambiguous case flag
-        if cell == NWSE
-            if !iszero(NW & entry_edge)
-                cells[key] = SE
-                return NW ⊻ entry_edge
-            elseif !iszero(SE & entry_edge)
-                cells[key] = NW
-                return SE ⊻ entry_edge
-            end
-        elseif cell == NESW
-            if !iszero(NE & entry_edge)
-                cells[key] = SW
-                return NE ⊻ entry_edge
-            elseif !iszero(SW & entry_edge)
-                cells[key] = NE
-                return SW ⊻ entry_edge
-            end
-        end
     end
 end
 
 function get_first_crossing(cell)
-    if iszero(cell & 0x10)
-        return cell
-    elseif cell == NWSE
+    if cell == NWSE
         return NW
     elseif cell == NESW
         return NE
+    else
+        return cell
     end
 end
 
@@ -219,17 +217,9 @@ function get_level_cells(z, h::Number)
             # Process ambiguous cells (case 5 and 10) using
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
-                if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = NWSE
-                else
-                    cells[(xi, yi)] = NESW
-                end
+                cells[(xi, yi)] = 0.25*sum(elts) >= h ? NWSE : NESW
             elseif case == 0x0a
-                if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = NESW
-                else
-                    cells[(xi, yi)] = NWSE
-                end
+                cells[(xi, yi)] = 0.25*sum(elts) >= h ? NESW : NWSE
             else
                 cells[(xi, yi)] = edge_LUT[case]
             end
@@ -241,9 +231,9 @@ end
 
 # Some constants used by trace_contour
 
-const fwd, rev = (UInt8(0)), (UInt8(1))
+const fwd, rev = (false, true)
 
-function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir::UInt8) where {T}
+function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir) where {T}
     if dir == fwd
         push!(curve.vertices, SVector{2,T}(pos...))
     else
@@ -255,7 +245,7 @@ end
 # vertex, add the location where the contour level
 # crosses the specified edge.
 function interpolate(x, y, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
-    if edge == W
+    @inbounds if edge == W
         y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
         x_interp = x[xi]
     elseif edge == E
@@ -307,7 +297,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     # contour returns to the starting edge of the starting cell
     loopback_edge = entry_edge
 
-    while true
+    @inbounds while true
         exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
 
         add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
@@ -344,7 +334,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
     # until it either ends up where it started # or at one of the boundaries.
     # It then tries to trace the contour in the opposite direction.
 
-    while length(cells) > 0
+    @inbounds while length(cells) > 0
         contour = Curve2(promote_type(map(eltype, (x, y, z))...))
 
         # Pick initial box
