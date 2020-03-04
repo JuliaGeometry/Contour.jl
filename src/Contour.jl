@@ -141,6 +141,8 @@ const NS, NE, NW = N|S, N|E, N|W
 const SN, SE, SW = S|N, S|E, S|W
 const EN, ES, EW = E|N, E|S, E|W
 const WN, WS, WE = W|N, W|S, W|E
+const NWSE = NW | 0x10 # special (ambiguous case)
+const NESW = NE | 0x10 # special (ambiguous case)
 
 const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
                 "W", "NW", "SW", "Invalid crossing", "WE"]
@@ -151,20 +153,42 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # the type of crossing that a cell contains.  While most
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
-struct Cell
-    crossings::Vector{UInt8}
-end
-
-function get_next_edge!(cell::Cell, entry_edge::UInt8)
-    for (i, edge) in enumerate(cell.crossings)
-        if !iszero(edge & entry_edge)
-            next_edge = edge ⊻ entry_edge
-            deleteat!(cell.crossings, i)
-
-            return next_edge
+function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
+    key = (xi,yi)
+    cell = cells[key]
+    if iszero(cell & 0x10)
+        next_edge = cell ⊻ entry_edge
+        delete!(cells, key)
+        return next_edge
+    else  # ambiguous case flag
+        if cell == NWSE
+            if !iszero(NW & entry_edge)
+                cells[key] = SE
+                return NW ⊻ entry_edge
+            elseif !iszero(SE & entry_edge)
+                cells[key] = NW
+                return SE ⊻ entry_edge
+            end
+        elseif cell == NESW
+            if !iszero(NE & entry_edge)
+                cells[key] = SW
+                return NE ⊻ entry_edge
+            elseif !iszero(SW & entry_edge)
+                cells[key] = NE
+                return SW ⊻ entry_edge
+            end
         end
     end
-    error("There is no edge containing ", entry_edge)
+end
+
+function get_first_crossing(cell)
+    if iszero(cell & 0x10)
+        return cell
+    elseif cell == NWSE
+        return NW
+    elseif cell == NESW
+        return NE
+    end
 end
 
 # Maps cell type to crossing types for non-ambiguous cells
@@ -179,7 +203,7 @@ function _get_case(z, h)
 end
 
 function get_level_cells(z, h::Number)
-    cells = Dict{(Tuple{Int,Int}),Cell}()
+    cells = Dict{Tuple{Int,Int},UInt8}()
     xi_max, yi_max = size(z)
 
     @inbounds for xi in 1:xi_max - 1
@@ -196,18 +220,18 @@ function get_level_cells(z, h::Number)
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
                 if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = Cell([NW, SE])
+                    cells[(xi, yi)] = NWSE
                 else
-                    cells[(xi, yi)] = Cell([NE, SW])
+                    cells[(xi, yi)] = NESW
                 end
             elseif case == 0x0a
                 if 0.25*sum(elts) >= h
-                    cells[(xi, yi)] = Cell([NE, SW])
+                    cells[(xi, yi)] = NESW
                 else
-                    cells[(xi, yi)] = Cell([NW, SE])
+                    cells[(xi, yi)] = NWSE
                 end
             else
-                cells[(xi, yi)] = Cell([edge_LUT[case]])
+                cells[(xi, yi)] = edge_LUT[case]
             end
         end
     end
@@ -219,7 +243,7 @@ end
 
 const fwd, rev = (UInt8(0)), (UInt8(1))
 
-@inline function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir::UInt8) where {T}
+function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir::UInt8) where {T}
     if dir == fwd
         push!(curve.vertices, SVector{2,T}(pos...))
     else
@@ -284,11 +308,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     loopback_edge = entry_edge
 
     while true
-        cell = cells[(xi, yi)]
-        exit_edge = get_next_edge!(cell, entry_edge)
-        if length(cell.crossings) == 0
-            delete!(cells, (xi, yi))
-        end
+        exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
 
         add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
 
@@ -313,17 +333,9 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
 end
 
 
-function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
+function trace_contour(x, y, z, h::Number, cells::Dict)
 
     contours = ContourLevel(h)
-
-    local yi::Int
-    local xi::Int
-    local xi_0::Int
-    local yi_0::Int
-
-    local xi_max::Int
-    local yi_max::Int
 
     (xi_max, yi_max) = size(z)
 
@@ -340,7 +352,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict{(Tuple{Int,Int}),Cell})
         (xi, yi) = (xi_0, yi_0)
 
         # Pick a starting edge
-        crossing = first(cell.crossings)
+        crossing = get_first_crossing(cell)
         starting_edge = UInt8(0)
         for edge in (N, S, E, W)
             if !iszero(edge & crossing)
