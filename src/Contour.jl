@@ -144,9 +144,6 @@ const WN, WS, WE = W|N, W|S, W|E
 const NWSE = NW | 0x10 # special (ambiguous case)
 const NESW = NE | 0x10 # special (ambiguous case)
 
-const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
-                "W", "NW", "SW", "Invalid crossing", "WE"]
-
 # The way a contour crossing goes through a cell is labeled
 # by combining compass directions (e.g. a NW crossing connects
 # the N edge and W edges of the cell).  The Cell type records
@@ -192,7 +189,7 @@ end
 # Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 
-function _get_case(z, h)
+@inline function _get_case(z, h)
     case = z[1] > h ? 0x01 : 0x00
     z[2] > h && (case |= 0x02)
     z[3] > h && (case |= 0x04)
@@ -229,18 +226,6 @@ function get_level_cells(z, h::Number)
     return cells
 end
 
-# Some constants used by trace_contour
-
-const fwd, rev = (false, true)
-
-function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir) where {T}
-    if dir == fwd
-        push!(curve.vertices, SVector{2,T}(pos...))
-    else
-        pushfirst!(curve.vertices, SVector{2,T}(pos...))
-    end
-end
-
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
@@ -259,7 +244,7 @@ function interpolate(x, y, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, ed
         x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
     end
 
-    return x_interp, y_interp
+    return SVector{2,T}(x_interp, y_interp)
 end
 
 function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
@@ -281,13 +266,13 @@ function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatr
         x_interp = x[xi,yi] + Δ[2]
     end
 
-    return x_interp, y_interp
+    return SVector{2,T}(x_interp, y_interp)
 end
 
 
 # Given a cell and a starting edge, we follow the contour line until we either
 # hit the boundary of the input data, or we form a closed contour.
-function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, dir)
+function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max)
 
     xi, yi = xi_start, yi_start
 
@@ -300,7 +285,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     @inbounds while true
         exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
 
-        add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
+        push!(curve, interpolate(x, y, z, h, xi, yi, exit_edge))
 
         if exit_edge == N
             yi += 1
@@ -327,7 +312,9 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
 
     contours = ContourLevel(h)
 
-    (xi_max, yi_max) = size(z)
+    (xi_max, yi_max) = size(z)::Tuple{Int,Int}
+
+    VT = SVector{2,promote_type(map(eltype, (x, y, z))...)}
 
     # When tracing out contours, this algorithm picks an arbitrary
     # starting cell, then first follows the contour in one direction
@@ -335,7 +322,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
     # It then tries to trace the contour in the opposite direction.
 
     @inbounds while length(cells) > 0
-        contour = Curve2(promote_type(map(eltype, (x, y, z))...))
+        contour_arr = VT[]
 
         # Pick initial box
         (xi_0, yi_0), cell = first(cells)
@@ -352,13 +339,13 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
         end
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, starting_edge), fwd)
+        push!(contour_arr, interpolate(x, y, z, h, xi_0, yi_0, starting_edge))
 
         # Start trace in forward direction
-        (xi_end, yi_end) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, fwd)
+        (xi_end, yi_end) = chase!(cells, contour_arr, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max)
 
-        if (xi_end, yi_end) == (xi_0, yi_0)
-            push!(contours.lines, contour)
+        if xi_end == xi_0 && yi_end == yi_0
+            push!(contours.lines, Curve2(contour_arr))
             continue
         end
 
@@ -376,14 +363,12 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
             starting_edge = E
         end
 
-        if !(0 < yi < yi_max && 0 < xi < xi_max)
-            push!(contours.lines, contour)
-            continue
+        if 0 < yi < yi_max && 0 < xi < xi_max
+            # Start trace in reverse direction
+            (xi, yi) = chase!(cells, reverse!(contour_arr), x, y, z, h, xi, yi, starting_edge, xi_max, yi_max)
         end
 
-        # Start trace in reverse direction
-        (xi, yi) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, rev)
-        push!(contours.lines, contour)
+        push!(contours.lines, Curve2(contour_arr))
     end
 
     return contours
