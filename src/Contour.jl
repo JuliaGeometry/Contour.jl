@@ -60,9 +60,9 @@ argument `level`.
 You'll usually call [`lines`](@ref) on the output of `contour`, and then iterate
 over the result.
 """
-function contour(x, y, z, level::Number)
+function contour(x, y, z, level::Number, cells = Dict{Tuple{Int,Int},UInt8}())
     # Todo: size checking on x,y,z
-    trace_contour(x, y, z, level, get_level_cells(z, level))
+    trace_contour(x, y, z, level, get_level_cells(z, level, cells))
 end
 
 """
@@ -76,7 +76,11 @@ contours(::Any...) = error("This method exists only for documentation purposes")
 `contours(x,y,z,levels)` Trace the contour levels indicated by the `levels`
 argument.
 """
-contours(x, y, z, levels) = ContourCollection([contour(x, y, z, l) for l in levels])
+function contours(x, y, z, levels)
+    # reuse lookup dictionary as it is run multiple times and empty after each run
+    cells = Dict{Tuple{Int,Int},UInt8}()
+    ContourCollection([contour(x, y, z, l, cells) for l in levels])
+end
 
 """
 `contours(x,y,z,Nlevels::Integer)` Trace `Nlevels` contour levels at heights
@@ -209,8 +213,8 @@ end
     case
 end
 
-function get_level_cells(z, h::Number)
-    cells = Dict{Tuple{Int,Int},UInt8}()
+function get_level_cells(z, h::Number, cells = Dict{Tuple{Int,Int},UInt8}())
+
     xi_max, yi_max = size(z)
 
     @inbounds for xi in 1:xi_max - 1
