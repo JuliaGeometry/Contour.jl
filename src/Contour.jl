@@ -152,6 +152,8 @@ const NESW = NE | 0x10 # special (ambiguous case)
 
 # Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
+const edge_pairs = ((S,W),(S,E),(E,W),(N,E),(0x0,0x0),(N,S),(N,W),
+                    (W,N),(S,N),(0x0,0x0),(E,N),(W,E),(E,S),(W,S))
 
 # The way a contour crossing goes through a cell is labeled
 # by combining compass directions (e.g. a NW crossing connects
@@ -189,7 +191,7 @@ end
         return xi, yi-one(T), N
     elseif edge == E
         return xi+one(T), yi, W
-    elseif edge == W
+    else # W
         return xi-one(T), yi, E
     end
 end
@@ -239,6 +241,63 @@ function get_level_cells(z, h::Number, cells = Dict{Tuple{Int,Int},UInt8}())
     end
 
     return cells
+end
+
+struct MSEdges
+
+end
+
+function contours(x,y,z, levels::Integer, T::MSEdges)
+    contours(x,y,z,contourlevels(z, levels), T)
+end
+
+function contours(x, y, z, levels, ::MSEdges)
+
+    xi_max, yi_max = size(z)
+
+    VT = SVector{2,eltype(z)}
+
+    edge_list = [Vector{Pair{VT,VT}}() for _ in levels]
+
+    @inbounds for xi in 1:xi_max - 1
+        for yi in 1:yi_max - 1
+            elts = (z[xi, yi], z[xi + 1, yi], z[xi + 1, yi + 1], z[xi, yi + 1])
+            for i in eachindex(levels)
+                h = levels[i]
+                case = _get_case(elts, h)
+
+                # Contour does not go through these cells
+                if iszero(case) || case == 0x0f
+                    continue
+                end
+
+                # Process ambiguous cells (case 5 and 10) using
+                # a bilinear interpolation of the cell-center value.
+                if case == 0x05
+                    if 0.25*sum(elts) >= h #? NWSE : NESW
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,W),
+                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,E))
+                    else
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,E),
+                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,W))
+                    end
+                elseif case == 0x0a
+                    if 0.25*sum(elts) >= h #? NESW : NWSE
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,E),
+                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,W))
+                    else
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,W),
+                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,E))
+                    end
+                else
+                    ep = edge_pairs[case]
+                    push!(edge_list[i], interpolate(x,y,z,h,xi,yi,ep[1]) => interpolate(x,y,z,h,xi,yi,ep[2]))
+                end
+            end
+        end
+    end
+
+    return edge_list
 end
 
 
