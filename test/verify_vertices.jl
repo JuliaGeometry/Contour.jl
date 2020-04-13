@@ -215,4 +215,15 @@ for i in eachindex(cts_ct)
     @test length(cts.contours[i].lines) == cts_ct[i]
     @test all(lines_ct[i] .== [length(c.vertices) for c in cts.contours[i].lines])
 end
+
+
+# support non-float z
+using StatsBase
+
+N = 10000
+x = randn(N)
+y = randn(N)
+H = fit(Histogram, (x, y), closed = :left)
+contours(midpoints.(H.edges)..., H.weights)
+
 end
