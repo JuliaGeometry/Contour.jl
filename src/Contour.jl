@@ -2,6 +2,8 @@ module Contour
 
 using StaticArrays
 
+include("interpolate.jl")
+
 export
     ContourLevel,
     Curve2,
@@ -238,53 +240,10 @@ function get_level_cells(z, h::Number)
     return cells
 end
 
-# Given the row and column indices of the lower left
-# vertex, add the location where the contour level
-# crosses the specified edge.
-function interpolate(x, y, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
-    @inbounds if edge == W
-        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
-        x_interp = x[xi]
-    elseif edge == E
-        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi + 1, yi]) / (z[xi + 1, yi + 1] - z[xi + 1, yi])
-        x_interp = x[xi + 1]
-    elseif edge == N
-        y_interp = y[yi + 1]
-        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1])
-    elseif edge == S
-        y_interp = y[yi]
-        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
-    end
-
-    return SVector{2,T}(x_interp, y_interp)
-end
-
-function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
-    if edge == W
-        Δ = [y[xi,  yi+1] - y[xi,  yi  ], x[xi,  yi+1] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi,  yi+1] - z[xi,  yi  ])
-        y_interp = y[xi,yi] + Δ[1]
-        x_interp = x[xi,yi] + Δ[2]
-    elseif edge == E
-        Δ = [y[xi+1,yi+1] - y[xi+1,yi  ], x[xi+1,yi+1] - x[xi+1,yi  ]].*(h - z[xi+1,yi  ])/(z[xi+1,yi+1] - z[xi+1,yi  ])
-        y_interp = y[xi+1,yi] + Δ[1]
-        x_interp = x[xi+1,yi] + Δ[2]
-    elseif edge == N
-        Δ = [y[xi+1,yi+1] - y[xi,  yi+1], x[xi+1,yi+1] - x[xi,  yi+1]].*(h - z[xi,  yi+1])/(z[xi+1,yi+1] - z[xi,  yi+1])
-        y_interp = y[xi,yi+1] + Δ[1]
-        x_interp = x[xi,yi+1] + Δ[2]
-    elseif edge == S
-        Δ = [y[xi+1,yi  ] - y[xi,  yi  ], x[xi+1,yi  ] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi+1,yi  ] - z[xi,  yi  ])
-        y_interp = y[xi,yi] + Δ[1]
-        x_interp = x[xi,yi] + Δ[2]
-    end
-
-    return SVector{2,T}(x_interp, y_interp)
-end
-
 
 # Given a cell and a starting edge, we follow the contour line until we either
 # hit the boundary of the input data, or we form a closed contour.
-function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max)
+function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, ::Type{VT}) where VT
 
     xi, yi = xi_start, yi_start
 
@@ -297,7 +256,7 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     @inbounds while true
         exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
 
-        push!(curve, interpolate(x, y, z, h, xi, yi, exit_edge))
+        push!(curve, interpolate(x, y, z, h, xi, yi, exit_edge, VT))
 
         xi, yi, entry_edge = advance_edge(xi, yi, exit_edge)
 
@@ -339,10 +298,10 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
         end
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        push!(contour_arr, interpolate(x, y, z, h, xi, yi, starting_edge))
+        push!(contour_arr, interpolate(x, y, z, h, xi, yi, starting_edge, VT))
 
         # Start trace in forward direction
-        xi_end, yi_end = chase!(cells, contour_arr, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max)
+        xi_end, yi_end = chase!(cells, contour_arr, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, VT)
 
         if xi_end == xi && yi_end == yi
             push!(contours.lines, Curve2(contour_arr))
@@ -353,7 +312,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
 
         if 0 < yi < yi_max && 0 < xi < xi_max
             # Start trace in reverse direction
-            chase!(cells, reverse!(contour_arr), x, y, z, h, xi, yi, starting_edge, xi_max, yi_max)
+            chase!(cells, reverse!(contour_arr), x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, VT)
         end
 
         push!(contours.lines, Curve2(contour_arr))
