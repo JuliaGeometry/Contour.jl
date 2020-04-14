@@ -13,7 +13,8 @@ include(joinpath(@__DIR__,"../test/testdata.jl"))
 v = Contour.contours(x, y, z)
 @show typeof(v)
 
-suite["contour"]["testdata"] = @benchmarkable Contour.contours($x,$y,$z)
+suite["contour"]["chase"] = @benchmarkable Contour.contours($x,$y,$z, 10)
+suite["contour"]["edge_list"] = @benchmarkable Contour.contours($x,$y,$z, 10, Contour.MSEdges())
 
 
 results = run(suite)
