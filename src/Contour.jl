@@ -161,28 +161,25 @@ const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 # have two crossings.
 function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
     key = (xi,yi)
-    cell = cells[key]
+    cell = pop!(cells, key)
     if cell == NWSE
-        if !iszero(NW & entry_edge)
+        if entry_edge == N || entry_edge == W
             cells[key] = SE
-            return NW ⊻ entry_edge
-        else #Nw
+            cell = NW
+        else #SE
             cells[key] = NW
-            return SE ⊻ entry_edge
+            cell = SE
         end
     elseif cell == NESW
-        if !iszero(NE & entry_edge)
+        if entry_edge == N || entry_edge == E
             cells[key] = SW
-            return NE ⊻ entry_edge
+            cell = NE
         else #SW
             cells[key] = NE
-            return SW ⊻ entry_edge
+            cell = SW
         end
-    else
-        next_edge = cell ⊻ entry_edge
-        delete!(cells, key)
-        return next_edge
     end
+    return cell ⊻ entry_edge
 end
 
 @inline function advance_edge(xi::T,yi::T,edge) where T
