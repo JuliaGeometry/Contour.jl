@@ -152,7 +152,7 @@ const NESW = NE | 0x10 # special (ambiguous case)
 
 # Maps cell type to crossing types for non-ambiguous cells
 const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
-const edge_pairs = ((S,W),(S,E),(E,W),(N,E),(0x0,0x0),(N,S),(N,W),
+const edge_pairs = ((W,S),(E,S),(E,W),(E,N),(0x0,0x0),(N,S),(W,N),
                     (W,N),(S,N),(0x0,0x0),(E,N),(W,E),(E,S),(W,S))
 
 # The way a contour crossing goes through a cell is labeled
@@ -263,6 +263,9 @@ function contour(x, y, z, h::Number, ::MSEdges)
 
     edge_list = Pair{VT,VT}[]
 
+    # save vertices
+    prior_vts = Vector{VT}(undef, yi_max-1)
+
     @inbounds for xi in 1:xi_max - 1
         for yi in 1:yi_max - 1
 
@@ -278,23 +281,23 @@ function contour(x, y, z, h::Number, ::MSEdges)
             # a bilinear interpolation of the cell-center value.
             if case == 0x05
                 if 0.25*sum(elts) >= h #? NWSE : NESW
-                    push!(edge_list, interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,W,VT),
-                                     interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,E,VT))
+                    add_edge!(x,y,z,h,xi,yi,(N,W),edge_list,prior_vts,VT)
+                    add_edge!(x,y,z,h,xi,yi,(S,E),edge_list,prior_vts,VT)
                 else
-                    push!(edge_list, interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,E,VT),
-                                     interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,W,VT))
+                    add_edge!(x,y,z,h,xi,yi,(N,E),edge_list,prior_vts,VT)
+                    add_edge!(x,y,z,h,xi,yi,(S,W),edge_list,prior_vts,VT)
                 end
             elseif case == 0x0a
                 if 0.25*sum(elts) >= h #? NESW : NWSE
-                    push!(edge_list, interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,E,VT),
-                                     interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,W,VT))
+                    add_edge!(x,y,z,h,xi,yi,(N,E),edge_list,prior_vts,VT)
+                    add_edge!(x,y,z,h,xi,yi,(S,W),edge_list,prior_vts,VT)
                 else
-                    push!(edge_list, interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,W,VT),
-                                     interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,E,VT))
+                    add_edge!(x,y,z,h,xi,yi,(N,W),edge_list,prior_vts,VT)
+                    add_edge!(x,y,z,h,xi,yi,(S,E),edge_list,prior_vts,VT)
                 end
             else
                 ep = edge_pairs[case]
-                push!(edge_list, Pair{VT,VT}(interpolate(x,y,z,h,xi,yi,ep[1],VT),interpolate(x,y,z,h,xi,yi,ep[2],VT)) )
+                add_edge!(x,y,z,h,xi,yi,ep,edge_list,prior_vts,VT)
             end
         end
     end
@@ -302,6 +305,15 @@ function contour(x, y, z, h::Number, ::MSEdges)
     return edge_list
 end
 
+function add_edge!(x,y,z,h,xi,yi,ep,edge_list,prior_vts,::Type{VT}) where VT
+    if ep[1] == W
+        fv = interpolate(x,y,z,h,xi,yi,ep[1],VT)
+        prior_vts[yi] = fv
+        push!(edge_list, fv => interpolate(x,y,z,h,xi,yi,ep[2],VT))
+    elseif ep[1] == E && xi != 1
+        push!(edge_list, prior_vts[yi] => interpolate(x,y,z,h,xi,yi,ep[2],VT))
+    end
+end
 
 # Given a cell and a starting edge, we follow the contour line until we either
 # hit the boundary of the input data, or we form a closed contour.
