@@ -259,9 +259,21 @@ function contours(x, y, z, levels, ::MSEdges)
 
     edge_list = [Vector{Pair{VT,VT}}() for _ in levels]
 
+    for e in edge_list
+        sizehint!(e, (2*xi_max+2*yi_max))
+    end
+
     @inbounds for xi in 1:xi_max - 1
         for yi in 1:yi_max - 1
+
             elts = (z[xi, yi], z[xi + 1, yi], z[xi + 1, yi + 1], z[xi, yi + 1])
+
+            # check upper and lower bounds first to see if we can skip
+            lb_h = first(levels); lb = _get_case(elts, lb_h)
+            ub_h = last(levels); ub = _get_case(elts, ub_h)
+            iszero(lb) && iszero(ub) && continue
+            lb == 0x0f && ub == 0x0f && continue
+
             for i in eachindex(levels)
                 h = levels[i]
                 case = _get_case(elts, h)
@@ -275,23 +287,23 @@ function contours(x, y, z, levels, ::MSEdges)
                 # a bilinear interpolation of the cell-center value.
                 if case == 0x05
                     if 0.25*sum(elts) >= h #? NWSE : NESW
-                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,W),
-                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,E))
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,W,VT),
+                                            interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,E,VT))
                     else
-                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,E),
-                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,W))
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,E,VT),
+                                            interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,W,VT))
                     end
                 elseif case == 0x0a
                     if 0.25*sum(elts) >= h #? NESW : NWSE
-                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,E),
-                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,W))
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,E,VT),
+                                            interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,W,VT))
                     else
-                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N) => interpolate(x,y,z,h,xi,yi,W),
-                                            interpolate(x,y,z,h,xi,yi,S) => interpolate(x,y,z,h,xi,yi,E))
+                        push!(edge_list[i], interpolate(x,y,z,h,xi,yi,N,VT) => interpolate(x,y,z,h,xi,yi,W,VT),
+                                            interpolate(x,y,z,h,xi,yi,S,VT) => interpolate(x,y,z,h,xi,yi,E,VT))
                     end
                 else
                     ep = edge_pairs[case]
-                    push!(edge_list[i], interpolate(x,y,z,h,xi,yi,ep[1]) => interpolate(x,y,z,h,xi,yi,ep[2]))
+                    push!(edge_list[i], Pair{VT,VT}(interpolate(x,y,z,h,xi,yi,ep[1],VT),interpolate(x,y,z,h,xi,yi,ep[2],VT)) )
                 end
             end
         end
