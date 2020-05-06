@@ -155,8 +155,7 @@ const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 # the type of crossing that a cell contains.  While most
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
-function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
-    key = (xi,yi)
+function get_next_edge!(cells::Dict, key, entry_edge::UInt8)
     cell = pop!(cells, key)
     if cell == NWSE
         if entry_edge == N || entry_edge == W
@@ -178,16 +177,14 @@ function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
     return cell ⊻ entry_edge
 end
 
-@inline function advance_edge(xi::T,yi::T,edge) where T
-    if edge == N
-        return xi, yi+one(T), S
-    elseif edge == S
-        return xi, yi-one(T), N
-    elseif edge == E
-        return xi+one(T), yi, W
-    elseif edge == W
-        return xi-one(T), yi, E
-    end
+# N, S, E, W
+const next_map = ((0,1), (0,-1), (1,0), (-1,0))
+const next_edge = (S,N,W,E)
+
+@inline function advance_edge(ind, edge)
+    n = trailing_zeros(edge) + 1
+    nt = ind .+ next_map[n]
+    return nt, next_edge[n]
 end
 
 @inline function get_first_crossing(cell)
@@ -240,9 +237,9 @@ end
 
 # Given a cell and a starting edge, we follow the contour line until we either
 # hit the boundary of the input data, or we form a closed contour.
-function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, ::Type{VT}) where VT
+function chase!(cells, curve, x, y, z, h, start, entry_edge, xi_max, yi_max, ::Type{VT}) where VT
 
-    xi, yi = xi_start, yi_start
+    ind = start
 
     # When the contour loops back to the starting cell, it is possible
     # for it to not intersect with itself.  This happens if the starting
@@ -251,17 +248,17 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     loopback_edge = entry_edge
 
     @inbounds while true
-        exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
+        exit_edge = get_next_edge!(cells, ind, entry_edge)
 
-        push!(curve, interpolate(x, y, z, h, xi, yi, exit_edge, VT))
+        push!(curve, interpolate(x, y, z, h, ind[1], ind[2], exit_edge, VT))
 
-        xi, yi, entry_edge = advance_edge(xi, yi, exit_edge)
+        ind, entry_edge = advance_edge(ind, exit_edge)
 
-        !((xi, yi, entry_edge) != (xi_start, yi_start, loopback_edge) &&
-           0 < yi < yi_max && 0 < xi < xi_max) && break
+        !((ind[1], ind[2], entry_edge) != (start[1], start[2], loopback_edge) &&
+           0 < ind[2] < yi_max && 0 < ind[1] < xi_max) && break
     end
 
-    return xi, yi
+    return ind
 end
 
 
@@ -282,7 +279,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
         contour_arr = VT[]
 
         # Pick initial box
-        (xi, yi), cell = first(cells)
+        ind, cell = first(cells)
 
         # Pick a starting edge
         crossing = get_first_crossing(cell)
@@ -295,21 +292,21 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
         end
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        push!(contour_arr, interpolate(x, y, z, h, xi, yi, starting_edge, VT))
+        push!(contour_arr, interpolate(x, y, z, h, ind[1], ind[2], starting_edge, VT))
 
         # Start trace in forward direction
-        xi_end, yi_end = chase!(cells, contour_arr, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, VT)
+        ind_end = chase!(cells, contour_arr, x, y, z, h, ind, starting_edge, xi_max, yi_max, VT)
 
-        if xi_end == xi && yi_end == yi
+        if ind == ind_end
             push!(contours.lines, Curve2(contour_arr))
             continue
         end
 
-        xi, yi, starting_edge = advance_edge(xi, yi, starting_edge)
+        ind, starting_edge = advance_edge(ind, starting_edge)
 
-        if 0 < yi < yi_max && 0 < xi < xi_max
+        if 0 < ind[2] < yi_max && 0 < ind[1] < xi_max
             # Start trace in reverse direction
-            chase!(cells, reverse!(contour_arr), x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, VT)
+            chase!(cells, reverse!(contour_arr), x, y, z, h, ind, starting_edge, xi_max, yi_max, VT)
         end
 
         push!(contours.lines, Curve2(contour_arr))
