@@ -283,13 +283,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
 
         # Pick a starting edge
         crossing = get_first_crossing(cell)
-        starting_edge = UInt8(0)
-        for edge in (N, S, E, W)
-            if !iszero(edge & crossing)
-                starting_edge = edge
-                break
-            end
-        end
+        starting_edge = 0x01 << trailing_zeros(crossing)
 
         # Add the contour entry location for cell (xi_0,yi_0)
         push!(contour_arr, interpolate(x, y, z, h, ind[1], ind[2], starting_edge, VT))
