@@ -2,6 +2,8 @@ module Contour
 
 using StaticArrays
 
+include("interpolate.jl")
+
 export
     ContourLevel,
     Curve2,
@@ -144,8 +146,8 @@ const WN, WS, WE = W|N, W|S, W|E
 const NWSE = NW | 0x10 # special (ambiguous case)
 const NESW = NE | 0x10 # special (ambiguous case)
 
-const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
-                "W", "NW", "SW", "Invalid crossing", "WE"]
+# Maps cell type to crossing types for non-ambiguous cells
+const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
 
 # The way a contour crossing goes through a cell is labeled
 # by combining compass directions (e.g. a NW crossing connects
@@ -153,33 +155,39 @@ const dirStr = ["N", "S", "NS", "E", "NE", "NS", "Invalid crossing",
 # the type of crossing that a cell contains.  While most
 # cells will have only one crossing, cell type 5 and 10 will
 # have two crossings.
-function get_next_edge!(cells::Dict, xi, yi, entry_edge::UInt8)
-    key = (xi,yi)
-    cell = cells[key]
+function get_next_edge!(cells::Dict, key, entry_edge::UInt8)
+    cell = pop!(cells, key)
     if cell == NWSE
-        if !iszero(NW & entry_edge)
+        if entry_edge == N || entry_edge == W
             cells[key] = SE
-            return NW ⊻ entry_edge
-        else #Nw
+            cell = NW
+        else #SE
             cells[key] = NW
-            return SE ⊻ entry_edge
+            cell = SE
         end
     elseif cell == NESW
-        if !iszero(NE & entry_edge)
+        if entry_edge == N || entry_edge == E
             cells[key] = SW
-            return NE ⊻ entry_edge
+            cell = NE
         else #SW
             cells[key] = NE
-            return SW ⊻ entry_edge
+            cell = SW
         end
-    else
-        next_edge = cell ⊻ entry_edge
-        delete!(cells, key)
-        return next_edge
     end
+    return cell ⊻ entry_edge
 end
 
-function get_first_crossing(cell)
+# N, S, E, W
+const next_map = ((0,1), (0,-1), (1,0), (-1,0))
+const next_edge = (S,N,W,E)
+
+@inline function advance_edge(ind, edge)
+    n = trailing_zeros(edge) + 1
+    nt = ind .+ next_map[n]
+    return nt, next_edge[n]
+end
+
+@inline function get_first_crossing(cell)
     if cell == NWSE
         return NW
     elseif cell == NESW
@@ -189,10 +197,7 @@ function get_first_crossing(cell)
     end
 end
 
-# Maps cell type to crossing types for non-ambiguous cells
-const edge_LUT = (SW, SE, EW, NE, 0x0, NS, NW, NW, NS, 0x0, NE, EW, SE, SW)
-
-function _get_case(z, h)
+@inline function _get_case(z, h)
     case = z[1] > h ? 0x01 : 0x00
     z[2] > h && (case |= 0x02)
     z[3] > h && (case |= 0x04)
@@ -229,67 +234,12 @@ function get_level_cells(z, h::Number)
     return cells
 end
 
-# Some constants used by trace_contour
-
-const fwd, rev = (false, true)
-
-function add_vertex!(curve::Curve2{T}, pos::Tuple{T,T}, dir) where {T}
-    if dir == fwd
-        push!(curve.vertices, SVector{2,T}(pos...))
-    else
-        pushfirst!(curve.vertices, SVector{2,T}(pos...))
-    end
-end
-
-# Given the row and column indices of the lower left
-# vertex, add the location where the contour level
-# crosses the specified edge.
-function interpolate(x, y, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
-    @inbounds if edge == W
-        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
-        x_interp = x[xi]
-    elseif edge == E
-        y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi + 1, yi]) / (z[xi + 1, yi + 1] - z[xi + 1, yi])
-        x_interp = x[xi + 1]
-    elseif edge == N
-        y_interp = y[yi + 1]
-        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi + 1]) / (z[xi + 1, yi + 1] - z[xi, yi + 1])
-    elseif edge == S
-        y_interp = y[yi]
-        x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
-    end
-
-    return x_interp, y_interp
-end
-
-function interpolate(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, h::Number, xi::Int, yi::Int, edge::UInt8) where {T <: AbstractFloat}
-    if edge == W
-        Δ = [y[xi,  yi+1] - y[xi,  yi  ], x[xi,  yi+1] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi,  yi+1] - z[xi,  yi  ])
-        y_interp = y[xi,yi] + Δ[1]
-        x_interp = x[xi,yi] + Δ[2]
-    elseif edge == E
-        Δ = [y[xi+1,yi+1] - y[xi+1,yi  ], x[xi+1,yi+1] - x[xi+1,yi  ]].*(h - z[xi+1,yi  ])/(z[xi+1,yi+1] - z[xi+1,yi  ])
-        y_interp = y[xi+1,yi] + Δ[1]
-        x_interp = x[xi+1,yi] + Δ[2]
-    elseif edge == N
-        Δ = [y[xi+1,yi+1] - y[xi,  yi+1], x[xi+1,yi+1] - x[xi,  yi+1]].*(h - z[xi,  yi+1])/(z[xi+1,yi+1] - z[xi,  yi+1])
-        y_interp = y[xi,yi+1] + Δ[1]
-        x_interp = x[xi,yi+1] + Δ[2]
-    elseif edge == S
-        Δ = [y[xi+1,yi  ] - y[xi,  yi  ], x[xi+1,yi  ] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi+1,yi  ] - z[xi,  yi  ])
-        y_interp = y[xi,yi] + Δ[1]
-        x_interp = x[xi,yi] + Δ[2]
-    end
-
-    return x_interp, y_interp
-end
-
 
 # Given a cell and a starting edge, we follow the contour line until we either
 # hit the boundary of the input data, or we form a closed contour.
-function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max, yi_max, dir)
+function chase!(cells, curve, x, y, z, h, start, entry_edge, xi_max, yi_max, ::Type{VT}) where VT
 
-    xi, yi = xi_start, yi_start
+    ind = start
 
     # When the contour loops back to the starting cell, it is possible
     # for it to not intersect with itself.  This happens if the starting
@@ -298,28 +248,17 @@ function chase!(cells, curve, x, y, z, h, xi_start, yi_start, entry_edge, xi_max
     loopback_edge = entry_edge
 
     @inbounds while true
-        exit_edge = get_next_edge!(cells, xi, yi, entry_edge)
+        exit_edge = get_next_edge!(cells, ind, entry_edge)
 
-        add_vertex!(curve, interpolate(x, y, z, h, xi, yi, exit_edge), dir)
+        push!(curve, interpolate(x, y, z, h, ind, exit_edge, VT))
 
-        if exit_edge == N
-            yi += 1
-            entry_edge = S
-        elseif exit_edge == S
-            yi -= 1
-            entry_edge = N
-        elseif exit_edge == E
-            xi += 1
-            entry_edge = W
-        elseif exit_edge == W
-            xi -= 1
-            entry_edge = E
-        end
-        !((xi, yi, entry_edge) != (xi_start, yi_start, loopback_edge) &&
-           0 < yi < yi_max && 0 < xi < xi_max) && break
+        ind, entry_edge = advance_edge(ind, exit_edge)
+
+        !((ind[1], ind[2], entry_edge) != (start[1], start[2], loopback_edge) &&
+           0 < ind[2] < yi_max && 0 < ind[1] < xi_max) && break
     end
 
-    return xi, yi
+    return ind
 end
 
 
@@ -327,7 +266,9 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
 
     contours = ContourLevel(h)
 
-    (xi_max, yi_max) = size(z)
+    (xi_max, yi_max) = size(z)::Tuple{Int,Int}
+
+    VT = SVector{2,promote_type(map(eltype, (x, y, z))...)}
 
     # When tracing out contours, this algorithm picks an arbitrary
     # starting cell, then first follows the contour in one direction
@@ -335,55 +276,34 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
     # It then tries to trace the contour in the opposite direction.
 
     @inbounds while length(cells) > 0
-        contour = Curve2(promote_type(map(eltype, (x, y, z))...))
+        contour_arr = VT[]
 
         # Pick initial box
-        (xi_0, yi_0), cell = first(cells)
-        (xi, yi) = (xi_0, yi_0)
+        ind, cell = first(cells)
 
         # Pick a starting edge
         crossing = get_first_crossing(cell)
-        starting_edge = UInt8(0)
-        for edge in (N, S, E, W)
-            if !iszero(edge & crossing)
-                starting_edge = edge
-                break
-            end
-        end
+        starting_edge = 0x01 << trailing_zeros(crossing)
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        add_vertex!(contour, interpolate(x, y, z, h, xi_0, yi_0, starting_edge), fwd)
+        push!(contour_arr, interpolate(x, y, z, h, ind, starting_edge, VT))
 
         # Start trace in forward direction
-        (xi_end, yi_end) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, fwd)
+        ind_end = chase!(cells, contour_arr, x, y, z, h, ind, starting_edge, xi_max, yi_max, VT)
 
-        if (xi_end, yi_end) == (xi_0, yi_0)
-            push!(contours.lines, contour)
+        if ind == ind_end
+            push!(contours.lines, Curve2(contour_arr))
             continue
         end
 
-        if starting_edge == N
-            yi = yi_0 + 1
-            starting_edge = S
-        elseif starting_edge == S
-            yi = yi_0 - 1
-            starting_edge = N
-        elseif starting_edge == E
-            xi = xi_0 + 1
-            starting_edge = W
-        elseif starting_edge == W
-            xi = xi_0 - 1
-            starting_edge = E
+        ind, starting_edge = advance_edge(ind, starting_edge)
+
+        if 0 < ind[2] < yi_max && 0 < ind[1] < xi_max
+            # Start trace in reverse direction
+            chase!(cells, reverse!(contour_arr), x, y, z, h, ind, starting_edge, xi_max, yi_max, VT)
         end
 
-        if !(0 < yi < yi_max && 0 < xi < xi_max)
-            push!(contours.lines, contour)
-            continue
-        end
-
-        # Start trace in reverse direction
-        (xi, yi) = chase!(cells, contour, x, y, z, h, xi, yi, starting_edge, xi_max, yi_max, rev)
-        push!(contours.lines, contour)
+        push!(contours.lines, Curve2(contour_arr))
     end
 
     return contours
