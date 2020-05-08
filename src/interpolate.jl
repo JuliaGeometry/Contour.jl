@@ -1,7 +1,8 @@
 # Given the row and column indices of the lower left
 # vertex, add the location where the contour level
 # crosses the specified edge.
-function interpolate(x, y, z::AbstractMatrix, h::Number, xi, yi, edge::UInt8, ::Type{VT}) where {VT}
+function interpolate(x, y, z::AbstractMatrix, h::Number, ind, edge::UInt8, ::Type{VT}) where {VT}
+    xi, yi = ind
     @inbounds if edge == W
         y_interp = y[yi] + (y[yi + 1] - y[yi]) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
         x_interp = x[xi]
@@ -19,7 +20,8 @@ function interpolate(x, y, z::AbstractMatrix, h::Number, xi, yi, edge::UInt8, ::
     return VT(x_interp, y_interp)
 end
 
-function interpolate(x::AbstractRange, y::AbstractRange, z::AbstractMatrix, h::Number, xi, yi, edge::UInt8, ::Type{VT}) where {VT}
+function interpolate(x::AbstractRange, y::AbstractRange, z::AbstractMatrix, h::Number, ind, edge::UInt8, ::Type{VT}) where {VT}
+    xi, yi = ind
     @inbounds if edge == W
         y_interp = y[yi] + step(y) * (h - z[xi, yi]) / (z[xi, yi + 1] - z[xi, yi])
         x_interp = x[xi]
@@ -37,8 +39,9 @@ function interpolate(x::AbstractRange, y::AbstractRange, z::AbstractMatrix, h::N
     return VT(x_interp, y_interp)
 end
 
-function interpolate(x::AbstractMatrix, y::AbstractMatrix, z::AbstractMatrix, h::Number, xi, yi, edge::UInt8, ::Type{VT}) where {VT}
-    if edge == W
+function interpolate(x::AbstractMatrix, y::AbstractMatrix, z::AbstractMatrix, h::Number, ind, edge::UInt8, ::Type{VT}) where {VT}
+    xi, yi = ind
+    @inbounds if edge == W
         Δ = [y[xi,  yi+1] - y[xi,  yi  ], x[xi,  yi+1] - x[xi,  yi  ]].*(h - z[xi,  yi  ])/(z[xi,  yi+1] - z[xi,  yi  ])
         y_interp = y[xi,yi] + Δ[1]
         x_interp = x[xi,yi] + Δ[2]

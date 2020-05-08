@@ -250,7 +250,7 @@ function chase!(cells, curve, x, y, z, h, start, entry_edge, xi_max, yi_max, ::T
     @inbounds while true
         exit_edge = get_next_edge!(cells, ind, entry_edge)
 
-        push!(curve, interpolate(x, y, z, h, ind[1], ind[2], exit_edge, VT))
+        push!(curve, interpolate(x, y, z, h, ind, exit_edge, VT))
 
         ind, entry_edge = advance_edge(ind, exit_edge)
 
@@ -286,7 +286,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
         starting_edge = 0x01 << trailing_zeros(crossing)
 
         # Add the contour entry location for cell (xi_0,yi_0)
-        push!(contour_arr, interpolate(x, y, z, h, ind[1], ind[2], starting_edge, VT))
+        push!(contour_arr, interpolate(x, y, z, h, ind, starting_edge, VT))
 
         # Start trace in forward direction
         ind_end = chase!(cells, contour_arr, x, y, z, h, ind, starting_edge, xi_max, yi_max, VT)
