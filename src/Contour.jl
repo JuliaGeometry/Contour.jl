@@ -21,7 +21,7 @@ struct Curve2{T}
 end
 Curve2(::Type{T}) where {T} = Curve2(SVector{2,T}[])
 show(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
-show(io::IO, ::MIME"text/plain", c2s::Vector{TC}) where {TC <: Curve2} = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
+show(io::IO, ::MIME"text/plain", c2s::Vector{Curve2{T}}) where {T} = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
 
 struct ContourLevel{T}
     level::T
@@ -30,7 +30,7 @@ end
 ContourLevel(h::T) where {T <: AbstractFloat} = ContourLevel(h, Curve2{T}[])
 ContourLevel(h::T) where {T} = ContourLevel(Float64(h))
 show(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n  at $(level(cl)) with $(length(lines(cl))) line(s)")
-show(io::IO, ::MIME"text/plain", cls::Vector{CL}) where {CL <: ContourLevel} = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
+show(io::IO, ::MIME"text/plain", cls::Vector{ContourLevel{T}}) where {T} = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
 """
 `lines(c)` Extracts an iterable collection of isolines from a contour level.
 Use [`coordinates`](@ref) to get the coordinates of a line.
