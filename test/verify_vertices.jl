@@ -141,7 +141,7 @@ lns_off = sort(Contour.lines(curves_off); by=c->sum(sum.(c.vertices)))
 
 # verify that each line matches a possibly circularly shifted or reversed
 # line from the offset array
-opencurve(a) = first(a) == last(a) ? a[begin:end-1] : a
+opencurve(a) = first(a) == last(a) ? a[1:end-1] : a
 for (c1, c2) in zip(lns, lns_off)
     o1 = opencurve(c1.vertices) .+ [offset]
     o2 = opencurve(c2.vertices)
