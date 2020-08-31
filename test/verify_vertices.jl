@@ -3,6 +3,8 @@ module VerticesTests
 using Contour, Test
 using Base.MathConstants: π, φ
 using LinearAlgebra: Diagonal
+using OffsetArrays
+using StaticArrays
 
 # Setup test axes that will be shared among the tests
 
@@ -119,8 +121,37 @@ x, y, z = real.(ζ), imag.(ζ), abs.(ζ)
 
 h = 1 + rand()
 xs, ys = coordinates(contour(x, y, z, h).lines[1])
-
 @test all(xs.^2 + ys.^2 .≈ h^2)
+
+
+# Test offset arrays
+offset_x, offset_y = -10, 27
+z = cumsum(cumsum(randn(20,20); dims=1); dims=2)
+zoff = OffsetArray(z, offset_x, offset_y)
+
+x, y = axes(z)
+xoff, yoff = axes(zoff)
+curves = Contour.contour(x,y,z,0.5)
+curves_off = Contour.contour(xoff, yoff, zoff, 0.5)
+
+# sort offset and non-offset curves to the same order
+offset = SVector(offset_x, offset_y)
+lns = sort(Contour.lines(curves); by=c->sum(sum.(c.vertices.+[offset])))
+lns_off = sort(Contour.lines(curves_off); by=c->sum(sum.(c.vertices)))
+
+# verify that each line matches a possibly circularly shifted or reversed
+# line from the offset array
+opencurve(a) = first(a) == last(a) ? a[begin:end-1] : a
+for (c1, c2) in zip(lns, lns_off)
+    o1 = opencurve(c1.vertices) .+ [offset]
+    o2 = opencurve(c2.vertices)
+    m = length(o1)
+    @test m == length(o2)
+    cshifts = [circshift(o2,i) for i=1:m]
+    @test any(o1 ≈ c || o1 ≈ reverse(c) for c in cshifts)
+end
+
+
 
 # Test Known Bugs
 

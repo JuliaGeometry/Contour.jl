@@ -63,7 +63,9 @@ You'll usually call [`lines`](@ref) on the output of `contour`, and then iterate
 over the result.
 """
 function contour(x, y, z, level::Number)
-    # Todo: size checking on x,y,z
+    if !(axes(x) == (axes(z,1),) && axes(y) == (axes(z,2),) || axes(x) == axes(y) == axes(z))
+        throw(ArgumentError("Incompatible input axes in `Contour.contour`."))
+    end
     trace_contour(x, y, z, level, get_level_cells(z, level))
 end
 
@@ -207,10 +209,10 @@ end
 
 function get_level_cells(z, h::Number)
     cells = Dict{Tuple{Int,Int},UInt8}()
-    xi_max, yi_max = size(z)
+    x_ax, y_ax = axes(z)
 
-    @inbounds for xi in 1:xi_max - 1
-        for yi in 1:yi_max - 1
+    @inbounds for xi in first(x_ax):last(x_ax)-1
+        for yi in first(y_ax):last(y_ax)-1
             elts = (z[xi, yi], z[xi + 1, yi], z[xi + 1, yi + 1], z[xi, yi + 1])
             case = _get_case(elts, h)
 
@@ -237,7 +239,7 @@ end
 
 # Given a cell and a starting edge, we follow the contour line until we either
 # hit the boundary of the input data, or we form a closed contour.
-function chase!(cells, curve, x, y, z, h, start, entry_edge, xi_max, yi_max, ::Type{VT}) where VT
+function chase!(cells, curve, x, y, z, h, start, entry_edge, xi_range, yi_range, ::Type{VT}) where VT
 
     ind = start
 
@@ -255,7 +257,7 @@ function chase!(cells, curve, x, y, z, h, start, entry_edge, xi_max, yi_max, ::T
         ind, entry_edge = advance_edge(ind, exit_edge)
 
         !((ind[1], ind[2], entry_edge) != (start[1], start[2], loopback_edge) &&
-           0 < ind[2] < yi_max && 0 < ind[1] < xi_max) && break
+           ind[2] ∈ yi_range && ind[1] ∈ xi_range) && break
     end
 
     return ind
@@ -266,7 +268,10 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
 
     contours = ContourLevel(h)
 
-    (xi_max, yi_max) = size(z)::Tuple{Int,Int}
+    x_ax, y_ax = axes(z)
+    xi_range = first(x_ax):last(x_ax)-1
+    yi_range = first(y_ax):last(y_ax)-1
+
 
     VT = SVector{2,promote_type(map(eltype, (x, y, z))...)}
 
@@ -289,7 +294,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
         push!(contour_arr, interpolate(x, y, z, h, ind, starting_edge, VT))
 
         # Start trace in forward direction
-        ind_end = chase!(cells, contour_arr, x, y, z, h, ind, starting_edge, xi_max, yi_max, VT)
+        ind_end = chase!(cells, contour_arr, x, y, z, h, ind, starting_edge, xi_range, yi_range, VT)
 
         if ind == ind_end
             push!(contours.lines, Curve2(contour_arr))
@@ -298,9 +303,9 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
 
         ind, starting_edge = advance_edge(ind, starting_edge)
 
-        if 0 < ind[2] < yi_max && 0 < ind[1] < xi_max
+        if ind[2] ∈ yi_range && ind[1] ∈ xi_range
             # Start trace in reverse direction
-            chase!(cells, reverse!(contour_arr), x, y, z, h, ind, starting_edge, xi_max, yi_max, VT)
+            chase!(cells, reverse!(contour_arr), x, y, z, h, ind, starting_edge, xi_range, yi_range, VT)
         end
 
         push!(contours.lines, Curve2(contour_arr))
