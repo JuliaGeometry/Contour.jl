@@ -232,7 +232,9 @@ include("testdata.jl")
 cts = Contour.contours(x, y, z)
 @test length(cts.contours) == 10
 cts_ct = (8, 8, 8, 8, 126, 7, 5, 5, 5, 4)
-lines_ct = ([138, 220, 469, 138, 469, 208, 143, 143],
+
+# Length need to be sorted as hashing might change see #62
+lines_ct = sort!.([[138, 220, 469, 138, 469, 208, 143, 143],
             [220, 475, 140, 210, 146, 475, 140, 146],
             [222, 481, 140, 214, 481, 145, 140, 145],
             [228, 485, 214, 142, 485, 142, 146, 146],
@@ -241,10 +243,10 @@ lines_ct = ([138, 220, 469, 138, 469, 208, 143, 143],
             [29, 12, 29, 15, 12],
             [26, 10, 13, 26, 10],
             [11, 11, 23, 11, 21],
-            [18, 19, 7, 7])
+            [18, 19, 7, 7]])
 for i in eachindex(cts_ct)
     @test length(cts.contours[i].lines) == cts_ct[i]
-    @test all(lines_ct[i] .== [length(c.vertices) for c in cts.contours[i].lines])
+    @test all(lines_ct[i] .== sort!([length(c.vertices) for c in cts.contours[i].lines]))
 end
 
 
