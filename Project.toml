@@ -1,6 +1,6 @@
 name = "Contour"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
-version = "0.5.6"
+version = "0.5.7"
 
 [deps]
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
