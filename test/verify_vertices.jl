@@ -65,7 +65,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    d = line.vertices[2] - line.vertices[1]
+    d = line.vertices[2] .- line.vertices[1]
     @test d[2] / d[1] ≈ -1.0
 end
 
@@ -80,7 +80,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    d = line.vertices[2] - line.vertices[1]
+    d = line.vertices[2] .- line.vertices[1]
     @test d[2] / d[1] ≈ 1.0
 end
 
@@ -94,7 +94,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    d = line.vertices[2] - line.vertices[1]
+    d = line.vertices[2] .- line.vertices[1]
     @test d[2] / d[1] ≈ 1.0
 end
 
@@ -109,7 +109,7 @@ lines = Contour.contour(X, Y, Z, h).lines
 
 for line in lines
     @test length(line.vertices) == 2
-    d = line.vertices[2] - line.vertices[1]
+    d = line.vertices[2] .- line.vertices[1]
     @test d[2] / d[1] ≈ -1.0
 end
 

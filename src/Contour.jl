@@ -17,7 +17,7 @@ export
 import Base: push!, length, eltype, show
 
 struct Curve2{T}
-    vertices::Vector{SVector{2,T}}
+    vertices::Vector{NTuple{2,T}}
 end
 Curve2(::Type{T}) where {T} = Curve2(SVector{2,T}[])
 show(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
@@ -273,7 +273,7 @@ function trace_contour(x, y, z, h::Number, cells::Dict)
     yi_range = first(y_ax):last(y_ax)-1
 
 
-    VT = SVector{2,promote_type(map(eltype, (x, y, z))...)}
+    VT = NTuple{2,promote_type(map(eltype, (x, y, z))...)}
 
     # When tracing out contours, this algorithm picks an arbitrary
     # starting cell, then first follows the contour in one direction

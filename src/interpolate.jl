@@ -17,7 +17,7 @@ function interpolate(x, y, z::AbstractMatrix, h::Number, ind, edge::UInt8, ::Typ
         x_interp = x[xi] + (x[xi + 1] - x[xi]) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
     end
 
-    return VT(x_interp, y_interp)
+    return VT <: Tuple ? (x_interp, y_interp) : VT(x_interp, y_interp)
 end
 
 function interpolate(x::AbstractRange, y::AbstractRange, z::AbstractMatrix, h::Number, ind, edge::UInt8, ::Type{VT}) where {VT}
@@ -36,7 +36,7 @@ function interpolate(x::AbstractRange, y::AbstractRange, z::AbstractMatrix, h::N
         x_interp = x[xi] + step(x) * (h - z[xi, yi]) / (z[xi + 1, yi] - z[xi, yi])
     end
 
-    return VT(x_interp, y_interp)
+    return VT <: Tuple ? (x_interp, y_interp) : VT(x_interp, y_interp)
 end
 
 function interpolate(x::AbstractMatrix, y::AbstractMatrix, z::AbstractMatrix, h::Number, ind, edge::UInt8, ::Type{VT}) where {VT}
@@ -59,5 +59,5 @@ function interpolate(x::AbstractMatrix, y::AbstractMatrix, z::AbstractMatrix, h:
         x_interp = x[xi,yi] + Δ[2]
     end
 
-    return VT(x_interp, y_interp)
+    return VT <: Tuple ? (x_interp, y_interp) : VT(x_interp, y_interp)
 end
