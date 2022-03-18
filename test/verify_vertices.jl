@@ -21,7 +21,7 @@ Y = collect(0:Δ:3) .+ φ
 Z = [(x^2 + y^2)::Float64 for x in X, y in Y]
 h = rand() * (maximum(Z) - minimum(Z)) + minimum(Z)
 
-contourlevels = Contour.contour(X, Y, Z, h)
+contourlevels = Contour.contour(X, Y, Z, h; VT=SVector{2,Float64})
 for line in contourlevels.lines
     # Contour vertices lie on a circle around the origin
     for v in line.vertices
@@ -42,7 +42,7 @@ h = 1
 x0, y0 = (.5, -1.5)
 Z = Float64[(x - x0)^2 + (y - y0)^2 for x in X, y in Y]
 
-contourlevels = Contour.contour(X, Y, Z, h)
+contourlevels = Contour.contour(X, Y, Z, h, VT=SVector{2,Float64})
 for line in contourlevels.lines
     for v in line.vertices
         @test isapprox((v[1] - x0)^2 + (v[2] - y0)^2, h, atol=0.01Δ)
@@ -104,7 +104,7 @@ Z = float([0 1;
            1 0])
 h = 0.9
 
-lines = Contour.contour(X, Y, Z, h).lines
+lines = Contour.contour(X, Y, Z, h, VT=SVector{2, Float64}).lines
 @test length(lines) == 2
 
 for line in lines
@@ -120,7 +120,7 @@ R = range(1.0, stop=2.0, length=100)
 x, y, z = real.(ζ), imag.(ζ), abs.(ζ)
 
 h = 1 + rand()
-xs, ys = coordinates(contour(x, y, z, h).lines[1])
+xs, ys = coordinates(contour(x, y, z, h, VT=SVector{2, Float64}).lines[1])
 @test all(xs.^2 + ys.^2 .≈ h^2)
 
 
@@ -131,8 +131,8 @@ zoff = OffsetArray(z, offset_x, offset_y)
 
 x, y = axes(z)
 xoff, yoff = axes(zoff)
-curves = Contour.contour(x,y,z,0.5)
-curves_off = Contour.contour(xoff, yoff, zoff, 0.5)
+curves = Contour.contour(x,y,z,0.5, VT=SVector{2, Float64})
+curves_off = Contour.contour(xoff, yoff, zoff, 0.5,VT=SVector{2, Float64})
 
 # sort offset and non-offset curves to the same order
 offset = SVector(offset_x, offset_y)
@@ -172,7 +172,7 @@ Y = collect(-3:Δ:3)
 Z = [(x^2 - y^2)::Float64 for x in X, y in Y]
 h = rand() * (maximum(Z) - minimum(Z)) + minimum(Z)
 
-contourlevels = Contour.contour(X, Y, Z, h)
+contourlevels = Contour.contour(X, Y, Z, h) #, VT=SVector{2, Float64})
 for line in contourlevels.lines
     # Contour vertices lie on a circle around the origin
     for v in line.vertices

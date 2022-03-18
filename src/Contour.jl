@@ -1,7 +1,5 @@
 module Contour
 
-using StaticArrays
-
 include("interpolate.jl")
 
 export
@@ -17,17 +15,17 @@ export
 import Base: push!, length, eltype, show
 
 struct Curve2{T}
-    vertices::Vector{NTuple{2,T}}
+    vertices::Vector{T}
 end
-Curve2(::Type{T}) where {T} = Curve2(SVector{2,T}[])
+Curve2(::Type{T}) where {T} = Curve2(T[])
 show(io::IO, ::MIME"text/plain", c2::Curve2) = write(io, "$(typeof(c2))\n  with $(length(c2.vertices)-1) vertices")
 show(io::IO, ::MIME"text/plain", c2s::Vector{Curve2{T}}) where {T} = write(io, "$(typeof(c2s))\n  $(length(c2s)) contour line(s)")
 
-struct ContourLevel{T}
-    level::T
+struct ContourLevel{T, L}
+    level::L
     lines::Vector{Curve2{T}}
 end
-ContourLevel(h::T) where {T <: AbstractFloat} = ContourLevel(h, Curve2{T}[])
+ContourLevel(h::T) where {T <: AbstractFloat} = ContourLevel(h, Curve2{NTuple{2,T}}[])
 ContourLevel(h::T) where {T} = ContourLevel(Float64(h))
 show(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n  at $(level(cl)) with $(length(lines(cl))) line(s)")
 show(io::IO, ::MIME"text/plain", cls::Vector{ContourLevel{T}}) where {T} = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
@@ -62,11 +60,12 @@ argument `level`.
 You'll usually call [`lines`](@ref) on the output of `contour`, and then iterate
 over the result.
 """
-function contour(x, y, z, level::Number)
+function contour(x, y, z, level::Number; VT=nothing)
     if !(axes(x) == (axes(z,1),) && axes(y) == (axes(z,2),) || axes(x) == axes(y) == axes(z))
         throw(ArgumentError("Incompatible input axes in `Contour.contour`."))
     end
-    trace_contour(x, y, z, level, get_level_cells(z, level))
+    VT = VT === nothing ? NTuple{2,promote_type(map(eltype, (x, y, z))...)} : VT
+    trace_contour(x, y, z, level, get_level_cells(z, level), VT)
 end
 
 """
@@ -111,8 +110,9 @@ a tuple of lists.
 """
 function coordinates(c::Curve2{T}) where {T}
     N = length(c.vertices)
-    xlist = Vector{T}(undef, N)
-    ylist = Vector{T}(undef, N)
+    E = eltype(T)
+    xlist = Vector{E}(undef, N)
+    ylist = Vector{E}(undef, N)
 
     for (i, v) in enumerate(c.vertices)
         xlist[i] = v[1]
@@ -264,16 +264,14 @@ function chase!(cells, curve, x, y, z, h, start, entry_edge, xi_range, yi_range,
 end
 
 
-function trace_contour(x, y, z, h::Number, cells::Dict)
+function trace_contour(x, y, z, h::Number, cells::Dict, VT)
 
-    contours = ContourLevel(h)
+    contours = ContourLevel(h, Curve2{VT}[])
 
     x_ax, y_ax = axes(z)
     xi_range = first(x_ax):last(x_ax)-1
     yi_range = first(y_ax):last(y_ax)-1
 
-
-    VT = NTuple{2,promote_type(map(eltype, (x, y, z))...)}
 
     # When tracing out contours, this algorithm picks an arbitrary
     # starting cell, then first follows the contour in one direction
