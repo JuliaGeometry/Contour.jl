@@ -5,7 +5,6 @@ Documentation:
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://JuliaGeometry.github.io/Contour.jl/latest)
 
 CI Status:  
-[![Build Status](https://travis-ci.org/JuliaGeometry/Contour.jl.svg?branch=master)](https://travis-ci.org/JuliaGeometry/Contour.jl)
 [![Coverage Status](https://img.shields.io/coveralls/JuliaGeometry/Contour.jl.svg?branch=master)](https://coveralls.io/r/JuliaGeometry/Contour.jl)
 
 A generic implementation of the [marching squares](https://en.wikipedia.org/wiki/Marching_squares) algorithm for tracing contour curves on a scalar 2D field.
