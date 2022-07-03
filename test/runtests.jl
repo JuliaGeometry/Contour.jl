@@ -15,7 +15,10 @@ using Aqua
 Aqua.test_all(Contour)
 
 
-@info "Running JET..."
+@static if Base.VERSION >= v"1.7"
 
-using JET
-display(JET.report_package(Contour))
+    @info "Running JET..."
+
+    using JET
+    display(JET.report_package(Contour))
+end
