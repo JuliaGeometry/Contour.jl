@@ -14,6 +14,11 @@ export
 
 import Base: push!, length, eltype, show
 
+"""
+    Curve2{T}
+
+Containing an extracted chain of points, where `T` is a vector-like element.
+"""
 struct Curve2{T}
     vertices::Vector{T}
 end
@@ -54,8 +59,11 @@ contour levels. Each of the objects support [`level`](@ref) and
 levels(cc::ContourCollection) = cc.contours
 
 """
-`contour(x, y, z, level::Number)` Trace a single contour level, indicated by the
-argument `level`.
+    contour(x, y, z, level::Number)
+    contour(x, y, z, level::Number, VT::Type)
+
+Trace a single contour level, indicated by the argument `level`. The extracted vertex type
+maybe be specified by `VT`.
 
 You'll usually call [`lines`](@ref) on the output of `contour`, and then iterate
 over the result.
