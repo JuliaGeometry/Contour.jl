@@ -81,7 +81,7 @@ end
 
 You'll usually call [`levels`](@ref) on the output of `contours`.
 """
-contours(::Any...) = error("This method exists only for documentation purposes")
+function contours end
 
 """
 `contours(x,y,z,levels)` Trace the contour levels indicated by the `levels`
