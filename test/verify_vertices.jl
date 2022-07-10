@@ -259,4 +259,8 @@ y = randn(N)
 H = fit(Histogram, (x, y), closed = :left)
 contours(midpoints.(H.edges)..., H.weights)
 
+# Integer support/Conversion
+contours(-5:5, -5:5, (-5:5)*(-5:5)')
+contours(-5:5, -5:5, (-5:5)*(-5:5)', VT=NTuple{2,Float16})
+
 end
