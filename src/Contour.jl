@@ -72,7 +72,9 @@ function contour(x, y, z, level::Number; VT=nothing)
     if !(axes(x) == (axes(z,1),) && axes(y) == (axes(z,2),) || axes(x) == axes(y) == axes(z))
         throw(ArgumentError("Incompatible input axes in `Contour.contour`."))
     end
-    VT = VT === nothing ? NTuple{2,promote_type(map(eltype, (x, y, z))...)} : VT
+    ET = promote_type(map(eltype, (x, y, z))...)
+    ET = ET <: Integer ? Float64 : ET
+    VT = VT === nothing ? NTuple{2,ET} : VT
     trace_contour(x, y, z, level, get_level_cells(z, level), VT)
 end
 
@@ -84,23 +86,27 @@ You'll usually call [`levels`](@ref) on the output of `contours`.
 function contours end
 
 """
-`contours(x,y,z,levels)` Trace the contour levels indicated by the `levels`
-argument.
+    contours(x,y,z,levels;[VT])
+Trace the contour levels indicated by the `levels` argument.
+The extracted vertex type maybe be specified by the `VT` keyword.
 """
-contours(x, y, z, levels) = ContourCollection([contour(x, y, z, l) for l in levels])
+contours(x, y, z, levels; VT=nothing) = ContourCollection([contour(x, y, z, l; VT=VT) for l in levels])
 
 """
-`contours(x,y,z,Nlevels::Integer)` Trace `Nlevels` contour levels at heights
+    contours(x,y,z,Nlevels::Integer;[VT])
+
+Trace `Nlevels` contour levels at heights
 chosen by the library (using the  [`contourlevels`](@ref) function).
+The extracted vertex type maybe be specified by the `VT` keyword.
 """
-function contours(x, y, z, Nlevels::Integer)
-    contours(x, y, z, contourlevels(z, Nlevels))
+function contours(x, y, z, Nlevels::Integer;VT=nothing)
+    contours(x, y, z, contourlevels(z, Nlevels); VT=VT)
 end
 
 """
-`contours(x,y,z)` Trace 10 automatically chosen contour levels.
+`contours(x,y,z;[VT])` Trace 10 automatically chosen contour levels.
 """
-contours(x, y, z) = contours(x, y, z, 10)
+contours(x, y, z; VT=nothing) = contours(x, y, z, 10; VT=VT)
 
 """
 `contourlevels(z,n)` Examines the values of `z` and chooses `n` evenly spaced
