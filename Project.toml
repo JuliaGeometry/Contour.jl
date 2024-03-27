@@ -4,6 +4,13 @@ version = "0.6.2"
 
 [compat]
 julia = "0.7, 1"
+Aqua = "0.8"
+JET = "0.0.1, 0.4, 0.8"
+LinearAlgebra = "1"
+OffsetArrays = "1"
+StaticArrays = "1"
+StatsBase = "0.34"
+Test = "1"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"

@@ -10,7 +10,8 @@ export
     level,
     levels,
     lines,
-    coordinates
+    coordinates,
+    vertices
 
 import Base: push!, length, eltype, show
 
@@ -36,7 +37,7 @@ show(io::IO, ::MIME"text/plain", cl::ContourLevel) = write(io, "$(typeof(cl))\n 
 show(io::IO, ::MIME"text/plain", cls::Vector{ContourLevel{T}}) where {T} = write(io, "$(typeof(cls))\n  $(length(cls)) contour level(s)")
 """
 `lines(c)` Extracts an iterable collection of isolines from a contour level.
-Use [`coordinates`](@ref) to get the coordinates of a line.
+Use [`coordinates`](@ref) or [`vertices`](@ref) to get the coordinates of a line.
 """
 lines(cl::ContourLevel) = cl.lines
 """
@@ -53,8 +54,8 @@ show(io::IO, ::MIME"text/plain", cc::ContourCollection) = write(io, "$(typeof(cc
 
 """
 Turns the output of [`contours`](@ref) into an iterable with each of the traced
-contour levels. Each of the objects support [`level`](@ref) and
-[`coordinates`](@ref).
+contour levels. Each of the objects support [`level`](@ref),
+[`coordinates`](@ref), and [`vertices`](@ref).
 """
 levels(cc::ContourCollection) = cc.contours
 
@@ -134,6 +135,13 @@ function coordinates(c::Curve2{T}) where {T}
     end
     xlist, ylist
 end
+
+"""
+`vertices(c)`
+
+Returns the vertices of a contour line as a vector of 2-element tuples.
+"""
+vertices(c::Curve2) = c.vertices
 
 # The marching squares algorithm defines 16 cell types
 # based on the edges that a contour line enters and exits
