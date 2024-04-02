@@ -97,8 +97,8 @@ This contour level only had one line. An isoline is represented as a sequence of
 vertices, which either starts and ends at the boundaries of the data set, or
 closes on itself, in which case the first and last points are equal.
 
-The ``x``- and ``y``-coordinates of an isoline are extracted using the
-[`coordinates`](@ref) function:
+The ``x``- and ``y``-coordinates of an isoline can be extracted using the
+[`coordinates`](@ref) or [`vertices`](@ref) functions:
 
 ```@example
 using Contour # hide
@@ -109,6 +109,7 @@ c = contours(x,y,z) # hide
 cl = first(levels(c)) # hide
 l = first(lines(cl))
 xs, ys = coordinates(l)
+x_y_pairs = vertices(l)
 nothing # hide
 ```
 
