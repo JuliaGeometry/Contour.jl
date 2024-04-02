@@ -1,6 +1,6 @@
 name = "Contour"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
-version = "0.6.2"
+version = "0.6.3"
 
 [compat]
 julia = "0.7, 1"
