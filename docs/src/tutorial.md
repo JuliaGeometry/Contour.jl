@@ -27,8 +27,10 @@ end
 
 ## Preface: some test data...
 
-The Contour module expects input data to be on a Cartesian grid, and supports
-both uniform and non-uniform grid spacings.  For the following examples, `x` and
+The Contour module expects input data to be on a Cartesian grid, and supports uniform 
+and non-uniform grid spacings, as well as general curvilinear grids (where `x` and `y` are matrices).  
+
+For the following examples, `x` and
 `y` are 1D sorted arrays that contain the grid coordinates, and `z` is a matrix
 arranged such that `z[xi,yi]` correspond to the location `(x[xi], y[yi])`.
 
